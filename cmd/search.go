@@ -61,7 +61,7 @@ func runSearch(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("yapılandırma hatası: %w", err)
 		}
 		if cfg.Firecrawl.APIKey == "" {
-			return fmt.Errorf("Firecrawl API anahtarı bulunamadı.\n\nYapılandırma dosyası oluşturun: %s\n\nİçerik:\nfirecrawl:\n  api_key: \"fc-...\"", config.ConfigPath())
+			return fmt.Errorf("firecrawl API anahtarı bulunamadı.\n\nYapılandırma dosyası oluşturun: %s\n\nİçerik:\nfirecrawl:\n  api_key: \"fc-...\"", config.ConfigPath())
 		}
 		firecrawlClient = scraper.NewFirecrawlClient(cfg.Firecrawl.APIKey, cfg.Firecrawl.APIURL)
 	}
