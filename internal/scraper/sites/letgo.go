@@ -17,21 +17,26 @@ const (
 )
 
 type Letgo struct {
-	limit int
+	limit     int
+	firecrawl *scraper.FirecrawlClient
 }
 
 func NewLetgo(limit int) *Letgo {
 	return &Letgo{limit: limit}
 }
 
-func (l *Letgo) Name() string                   { return "letgo.com" }
-func (l *Letgo) SiteCategory() scraper.Category { return scraper.UsedBook }
+func (l *Letgo) Name() string                                 { return "letgo.com" }
+func (l *Letgo) SiteCategory() scraper.Category               { return scraper.UsedBook }
+func (l *Letgo) SetFirecrawl(client *scraper.FirecrawlClient) { l.firecrawl = client }
 
 func (l *Letgo) Search(ctx context.Context, query string, searchType scraper.SearchType) ([]scraper.BookResult, error) {
+	if l.firecrawl == nil {
+		return nil, fmt.Errorf("letgo.com Firecrawl gerektirir (--firecrawl bayrağını kullanın)")
+	}
+
 	searchURL := fmt.Sprintf(letgoSearchURL, url.QueryEscape(query))
 
-	// Use FetchPageWithWait to ensure item cards are rendered before extracting HTML.
-	pageHTML, err := scraper.FetchPageWithWait(ctx, searchURL, `[data-testid="item-card"]`)
+	pageHTML, err := l.firecrawl.FetchHTML(ctx, searchURL, 5000)
 	if err != nil {
 		return nil, fmt.Errorf("letgo: %w", err)
 	}

@@ -58,6 +58,7 @@ type Scraper interface {
 	Name() string
 	Search(ctx context.Context, query string, searchType SearchType) ([]BookResult, error)
 	SiteCategory() Category
+	SetFirecrawl(client *FirecrawlClient)
 }
 
 var userAgents = []string{

@@ -19,20 +19,28 @@ const (
 )
 
 type Nadirkitap struct {
-	limit int
+	limit     int
+	firecrawl *scraper.FirecrawlClient
 }
 
 func NewNadirkitap(limit int) *Nadirkitap {
 	return &Nadirkitap{limit: limit}
 }
 
-func (n *Nadirkitap) Name() string                   { return "nadirkitap.com" }
-func (n *Nadirkitap) SiteCategory() scraper.Category { return scraper.UsedBook }
+func (n *Nadirkitap) Name() string                                 { return "nadirkitap.com" }
+func (n *Nadirkitap) SiteCategory() scraper.Category               { return scraper.UsedBook }
+func (n *Nadirkitap) SetFirecrawl(client *scraper.FirecrawlClient) { n.firecrawl = client }
 
 func (n *Nadirkitap) Search(ctx context.Context, query string, searchType scraper.SearchType) ([]scraper.BookResult, error) {
 	searchURL := fmt.Sprintf(nadirkitapSearchURL, url.QueryEscape(query))
 
-	pageHTML, err := scraper.FetchPage(ctx, searchURL)
+	var pageHTML string
+	var err error
+	if n.firecrawl != nil {
+		pageHTML, err = n.firecrawl.FetchHTML(ctx, searchURL, 0)
+	} else {
+		pageHTML, err = scraper.FetchPage(ctx, searchURL)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("nadirkitap: %w", err)
 	}

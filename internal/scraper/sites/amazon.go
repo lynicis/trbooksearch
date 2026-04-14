@@ -18,20 +18,28 @@ const (
 )
 
 type Amazon struct {
-	limit int
+	limit     int
+	firecrawl *scraper.FirecrawlClient
 }
 
 func NewAmazon(limit int) *Amazon {
 	return &Amazon{limit: limit}
 }
 
-func (a *Amazon) Name() string                   { return "amazon.com.tr" }
-func (a *Amazon) SiteCategory() scraper.Category { return scraper.NewBook }
+func (a *Amazon) Name() string                                 { return "amazon.com.tr" }
+func (a *Amazon) SiteCategory() scraper.Category               { return scraper.NewBook }
+func (a *Amazon) SetFirecrawl(client *scraper.FirecrawlClient) { a.firecrawl = client }
 
 func (a *Amazon) Search(ctx context.Context, query string, searchType scraper.SearchType) ([]scraper.BookResult, error) {
 	searchURL := fmt.Sprintf(amazonSearchURL, url.QueryEscape(query))
 
-	pageHTML, err := scraper.FetchPageWithWait(ctx, searchURL, `[data-component-type="s-search-result"]`)
+	var pageHTML string
+	var err error
+	if a.firecrawl != nil {
+		pageHTML, err = a.firecrawl.FetchHTML(ctx, searchURL, 5000)
+	} else {
+		pageHTML, err = scraper.FetchPageWithWait(ctx, searchURL, `[data-component-type="s-search-result"]`)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("amazon.com.tr: %w", err)
 	}

@@ -27,7 +27,10 @@ ikinci el ve yeni kitap fiyatlarını karşılaştırmanızı sağlar.
 
 Desteklenen siteler:
   İkinci El: nadirkitap.com
-  Yeni:      kitapyurdu.com, trendyol.com, hepsiburada.com, amazon.com.tr`,
+  Yeni:      kitapyurdu.com, trendyol.com, hepsiburada.com, amazon.com.tr
+
+Firecrawl ile ek siteler (--firecrawl):
+  İkinci El: letgo.com, dolap.com, gardrops.com`,
 }
 
 func init() {

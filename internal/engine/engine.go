@@ -29,12 +29,14 @@ type SiteStatus struct {
 
 // Engine dispatches searches to multiple scrapers in parallel.
 type Engine struct {
-	scrapers []scraper.Scraper
+	scrapers  []scraper.Scraper
+	firecrawl *scraper.FirecrawlClient
 }
 
 // NewEngine creates a new search engine with the given scrapers.
-func NewEngine(scrapers ...scraper.Scraper) *Engine {
-	return &Engine{scrapers: scrapers}
+// If firecrawl is non-nil, all scrapers will use Firecrawl for HTML fetching.
+func NewEngine(firecrawl *scraper.FirecrawlClient, scrapers ...scraper.Scraper) *Engine {
+	return &Engine{scrapers: scrapers, firecrawl: firecrawl}
 }
 
 // Scrapers returns the list of registered scrapers.
@@ -49,7 +51,7 @@ type SearchResult struct {
 }
 
 // Search dispatches the query to all scrapers with staggered parallel launch.
-// Each scraper launches its own isolated browser instance.
+// When Firecrawl is configured, scrapers use the API instead of local browsers.
 func (e *Engine) Search(ctx context.Context, query string, searchType scraper.SearchType, statusCh chan<- SiteStatus) SearchResult {
 	var (
 		mu      sync.Mutex
@@ -58,10 +60,17 @@ func (e *Engine) Search(ctx context.Context, query string, searchType scraper.Se
 		errors  []SearchError
 	)
 
+	// Pass Firecrawl client to all scrapers if available.
+	if e.firecrawl != nil {
+		for _, s := range e.scrapers {
+			s.SetFirecrawl(e.firecrawl)
+		}
+	}
+
 	for i, s := range e.scrapers {
 		wg.Add(1)
 		// Stagger launches by 1s to reduce bot detection from simultaneous browser starts
-		if i > 0 {
+		if i > 0 && e.firecrawl == nil {
 			time.Sleep(1 * time.Second)
 		}
 		go func(s scraper.Scraper) {

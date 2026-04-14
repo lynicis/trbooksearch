@@ -18,21 +18,29 @@ const (
 )
 
 type Trendyol struct {
-	limit int
+	limit     int
+	firecrawl *scraper.FirecrawlClient
 }
 
 func NewTrendyol(limit int) *Trendyol {
 	return &Trendyol{limit: limit}
 }
 
-func (t *Trendyol) Name() string                   { return "trendyol.com" }
-func (t *Trendyol) SiteCategory() scraper.Category { return scraper.NewBook }
+func (t *Trendyol) Name() string                                 { return "trendyol.com" }
+func (t *Trendyol) SiteCategory() scraper.Category               { return scraper.NewBook }
+func (t *Trendyol) SetFirecrawl(client *scraper.FirecrawlClient) { t.firecrawl = client }
 
 func (t *Trendyol) Search(ctx context.Context, query string, searchType scraper.SearchType) ([]scraper.BookResult, error) {
 	searchURL := fmt.Sprintf(trendyolSearchURL, url.QueryEscape(query))
 
-	// Use FetchPageWithWait — Trendyol is an SPA that needs time to render product cards
-	pageHTML, err := scraper.FetchPageWithWait(ctx, searchURL, "a.product-card")
+	var pageHTML string
+	var err error
+	if t.firecrawl != nil {
+		pageHTML, err = t.firecrawl.FetchHTML(ctx, searchURL, 5000)
+	} else {
+		// Use FetchPageWithWait — Trendyol is an SPA that needs time to render product cards
+		pageHTML, err = scraper.FetchPageWithWait(ctx, searchURL, "a.product-card")
+	}
 	if err != nil {
 		return nil, fmt.Errorf("trendyol: %w", err)
 	}

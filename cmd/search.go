@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"trbooksearch/internal/config"
 	"trbooksearch/internal/engine"
 	"trbooksearch/internal/scraper"
 	"trbooksearch/internal/scraper/sites"
@@ -17,11 +18,12 @@ import (
 )
 
 var (
-	flagISBN    bool
-	flagFlat    bool
-	flagLimit   int
-	flagSites   string
-	flagExclude string
+	flagISBN      bool
+	flagFlat      bool
+	flagLimit     int
+	flagSites     string
+	flagExclude   string
+	flagFirecrawl bool
 )
 
 var searchCmd = &cobra.Command{
@@ -39,6 +41,7 @@ func init() {
 	searchCmd.Flags().IntVar(&flagLimit, "limit", 10, "Site başına maksimum sonuç sayısı")
 	searchCmd.Flags().StringVar(&flagSites, "sites", "", "Sadece belirtilen sitelerde ara (virgülle ayır)")
 	searchCmd.Flags().StringVar(&flagExclude, "exclude", "", "Belirtilen siteleri hariç tut (virgülle ayır)")
+	searchCmd.Flags().BoolVar(&flagFirecrawl, "firecrawl", false, "Firecrawl API ile tüm siteleri tara (API anahtarı gerektirir)")
 	rootCmd.AddCommand(searchCmd)
 }
 
@@ -50,8 +53,21 @@ func runSearch(cmd *cobra.Command, args []string) error {
 		searchType = scraper.ISBNSearch
 	}
 
+	// Load config for Firecrawl
+	var firecrawlClient *scraper.FirecrawlClient
+	if flagFirecrawl {
+		cfg, err := config.Load()
+		if err != nil {
+			return fmt.Errorf("yapılandırma hatası: %w", err)
+		}
+		if cfg.Firecrawl.APIKey == "" {
+			return fmt.Errorf("Firecrawl API anahtarı bulunamadı.\n\nYapılandırma dosyası oluşturun: %s\n\nİçerik:\nfirecrawl:\n  api_key: \"fc-...\"", config.ConfigPath())
+		}
+		firecrawlClient = scraper.NewFirecrawlClient(cfg.Firecrawl.APIKey, cfg.Firecrawl.APIURL)
+	}
+
 	// Build scraper list
-	allScrapers := sites.AllScrapers(flagLimit)
+	allScrapers := sites.AllScrapers(flagLimit, flagFirecrawl)
 
 	// Filter by --sites
 	var includeSites map[string]bool
@@ -87,7 +103,7 @@ func runSearch(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("hiçbir site seçilmedi, filtreleri kontrol edin")
 	}
 
-	eng := engine.NewEngine(filtered...)
+	eng := engine.NewEngine(firecrawlClient, filtered...)
 
 	// Create TUI model and run
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)

@@ -18,21 +18,29 @@ const (
 )
 
 type Hepsiburada struct {
-	limit int
+	limit     int
+	firecrawl *scraper.FirecrawlClient
 }
 
 func NewHepsiburada(limit int) *Hepsiburada {
 	return &Hepsiburada{limit: limit}
 }
 
-func (h *Hepsiburada) Name() string                   { return "hepsiburada.com" }
-func (h *Hepsiburada) SiteCategory() scraper.Category { return scraper.NewBook }
+func (h *Hepsiburada) Name() string                                 { return "hepsiburada.com" }
+func (h *Hepsiburada) SiteCategory() scraper.Category               { return scraper.NewBook }
+func (h *Hepsiburada) SetFirecrawl(client *scraper.FirecrawlClient) { h.firecrawl = client }
 
 func (h *Hepsiburada) Search(ctx context.Context, query string, searchType scraper.SearchType) ([]scraper.BookResult, error) {
 	searchURL := fmt.Sprintf(hepsiburadaSearchURL, url.QueryEscape(query))
 
-	// Use FetchPageWithWait — Hepsiburada needs JS to render product cards
-	pageHTML, err := scraper.FetchPageWithWait(ctx, searchURL, `[class*="productCard-module_article"]`)
+	var pageHTML string
+	var err error
+	if h.firecrawl != nil {
+		pageHTML, err = h.firecrawl.FetchHTML(ctx, searchURL, 5000)
+	} else {
+		// Use FetchPageWithWait — Hepsiburada needs JS to render product cards
+		pageHTML, err = scraper.FetchPageWithWait(ctx, searchURL, `[class*="productCard-module_article"]`)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("hepsiburada: %w", err)
 	}

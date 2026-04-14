@@ -12,15 +12,17 @@ import (
 )
 
 type Kitapyurdu struct {
-	limit int
+	limit     int
+	firecrawl *scraper.FirecrawlClient
 }
 
 func NewKitapyurdu(limit int) *Kitapyurdu {
 	return &Kitapyurdu{limit: limit}
 }
 
-func (k *Kitapyurdu) Name() string                   { return "kitapyurdu.com" }
-func (k *Kitapyurdu) SiteCategory() scraper.Category { return scraper.NewBook }
+func (k *Kitapyurdu) Name() string                                 { return "kitapyurdu.com" }
+func (k *Kitapyurdu) SiteCategory() scraper.Category               { return scraper.NewBook }
+func (k *Kitapyurdu) SetFirecrawl(client *scraper.FirecrawlClient) { k.firecrawl = client }
 
 func (k *Kitapyurdu) Search(ctx context.Context, query string, searchType scraper.SearchType) ([]scraper.BookResult, error) {
 	searchURL := fmt.Sprintf(
@@ -28,7 +30,13 @@ func (k *Kitapyurdu) Search(ctx context.Context, query string, searchType scrape
 		url.QueryEscape(query),
 	)
 
-	pageHTML, err := scraper.FetchPageWithWait(ctx, searchURL, ".ky-product")
+	var pageHTML string
+	var err error
+	if k.firecrawl != nil {
+		pageHTML, err = k.firecrawl.FetchHTML(ctx, searchURL, 5000)
+	} else {
+		pageHTML, err = scraper.FetchPageWithWait(ctx, searchURL, ".ky-product")
+	}
 	if err != nil {
 		return nil, fmt.Errorf("kitapyurdu: %w", err)
 	}
