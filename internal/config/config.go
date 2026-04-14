@@ -60,3 +60,28 @@ func ConfigPath() string {
 	}
 	return filepath.Join(configDir, appName, "config.yaml")
 }
+
+// Save writes the config to the config file, creating the directory if needed.
+func Save(cfg Config) error {
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		return fmt.Errorf("config dir: %w", err)
+	}
+
+	dir := filepath.Join(configDir, appName)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("creating config dir: %w", err)
+	}
+
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		return fmt.Errorf("marshaling config: %w", err)
+	}
+
+	path := filepath.Join(dir, "config.yaml")
+	if err := os.WriteFile(path, data, 0600); err != nil {
+		return fmt.Errorf("writing config: %w", err)
+	}
+
+	return nil
+}

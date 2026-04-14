@@ -181,9 +181,29 @@ trbooksearch search --firecrawl "Otostopcularin Galaksi Rehberi"
 
 ### Firecrawl API Setup
 
-To use the `--firecrawl` flag and access additional sites, you need a [Firecrawl](https://firecrawl.dev) API key:
+To use the `--firecrawl` flag and access additional sites, you need a [Firecrawl](https://firecrawl.dev) API key.
+
+**Quick Setup:**
+
+```bash
+trbooksearch set-api-key fc-your-api-key-here
+```
+
+Or interactively:
+
+```bash
+trbooksearch set-api-key
+# Prompts: Firecrawl API anahtarı: _
+```
+
+**Manual Setup:**
+
+You can also create the config file manually:
 
 ```yaml
+# ~/.config/trbooksearch/config.yaml (Linux)
+# ~/Library/Application Support/trbooksearch/config.yaml (macOS)
+
 firecrawl:
   api_key: "fc-your-api-key-here"
   api_url: "https://api.firecrawl.dev"  # optional, this is the default

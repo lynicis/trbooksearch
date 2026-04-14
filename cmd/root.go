@@ -30,7 +30,10 @@ Desteklenen siteler:
   Yeni:      kitapyurdu.com, trendyol.com, hepsiburada.com, amazon.com.tr
 
 Firecrawl ile ek siteler (--firecrawl):
-  İkinci El: letgo.com, dolap.com, gardrops.com`,
+  İkinci El: letgo.com, dolap.com, gardrops.com
+
+Firecrawl API anahtarını ayarlamak için:
+  trbooksearch set-api-key <anahtar>`,
 }
 
 func init() {
