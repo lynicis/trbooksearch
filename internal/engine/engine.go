@@ -6,7 +6,7 @@ import (
 	"sort"
 	"sync"
 	"time"
-	"trbooksearch/internal/scraper"
+	"github.com/lynicis/trbooksearch/internal/scraper"
 )
 
 // SearchError holds a scraper error alongside the scraper name.

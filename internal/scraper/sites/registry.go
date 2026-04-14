@@ -1,6 +1,6 @@
 package sites
 
-import "trbooksearch/internal/scraper"
+import "github.com/lynicis/trbooksearch/internal/scraper"
 
 // AllScrapers returns all available scrapers with the given result limit.
 // When firecrawlEnabled is true, Firecrawl-only sites (letgo, dolap, gardrops) are included.

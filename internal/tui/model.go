@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"trbooksearch/internal/engine"
-	"trbooksearch/internal/scraper"
+	"github.com/lynicis/trbooksearch/internal/engine"
+	"github.com/lynicis/trbooksearch/internal/scraper"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"

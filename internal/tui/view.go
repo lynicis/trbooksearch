@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"trbooksearch/internal/engine"
-	"trbooksearch/internal/scraper"
+	"github.com/lynicis/trbooksearch/internal/engine"
+	"github.com/lynicis/trbooksearch/internal/scraper"
 
 	"github.com/charmbracelet/lipgloss"
 )

@@ -1,6 +1,6 @@
 package main
 
-import "trbooksearch/cmd"
+import "github.com/lynicis/trbooksearch/cmd"
 
 var (
 	version = "dev"

@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"trbooksearch/internal/scraper"
+	"github.com/lynicis/trbooksearch/internal/scraper"
 
 	"github.com/PuerkitoBio/goquery"
 )

@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"trbooksearch/internal/config"
-	"trbooksearch/internal/engine"
-	"trbooksearch/internal/scraper"
-	"trbooksearch/internal/scraper/sites"
-	"trbooksearch/internal/tui"
+	"github.com/lynicis/trbooksearch/internal/config"
+	"github.com/lynicis/trbooksearch/internal/engine"
+	"github.com/lynicis/trbooksearch/internal/scraper"
+	"github.com/lynicis/trbooksearch/internal/scraper/sites"
+	"github.com/lynicis/trbooksearch/internal/tui"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"

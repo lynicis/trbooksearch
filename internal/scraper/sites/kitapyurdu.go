@@ -8,7 +8,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 
-	"trbooksearch/internal/scraper"
+	"github.com/lynicis/trbooksearch/internal/scraper"
 )
 
 type Kitapyurdu struct {
