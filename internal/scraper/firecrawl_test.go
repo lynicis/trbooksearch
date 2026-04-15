@@ -33,7 +33,7 @@ func TestFetchHTML_Success(t *testing.T) {
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(firecrawlResponse{
+		_ = json.NewEncoder(w).Encode(firecrawlResponse{
 			Success: true,
 			Data: struct {
 				HTML     string         `json:"html"`
@@ -72,7 +72,7 @@ func TestFetchHTML_SuccessWithWaitFor(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(firecrawlResponse{
+		_ = json.NewEncoder(w).Encode(firecrawlResponse{
 			Success: true,
 			Data: struct {
 				HTML     string         `json:"html"`
@@ -118,7 +118,7 @@ func TestFetchHTML_NotIncludeWaitForWhenZero(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(firecrawlResponse{
+		_ = json.NewEncoder(w).Encode(firecrawlResponse{
 			Success: true,
 			Data: struct {
 				HTML     string         `json:"html"`
@@ -210,7 +210,7 @@ func TestFetchHTML_EmptyHTML(t *testing.T) {
 func TestFetchHTML_InvalidJSON(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte("this is not json at all"))
+		_, _ = w.Write([]byte("this is not json at all"))
 	}))
 	defer srv.Close()
 

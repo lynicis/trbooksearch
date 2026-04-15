@@ -105,7 +105,7 @@ func TestVersionCommand_Output(t *testing.T) {
 	rootCmd.SetArgs([]string{"version"})
 	execErr := rootCmd.Execute()
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = oldStdout
 
 	if execErr != nil {
