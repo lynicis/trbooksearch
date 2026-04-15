@@ -95,11 +95,6 @@ func (d *Dolap) Search(ctx context.Context, query string, searchType scraper.Sea
 			return
 		}
 
-		// Post-filter relevance
-		if !scraper.MatchesQuery(displayTitle, query) && !scraper.MatchesQuery(productURL, query) {
-			return
-		}
-
 		results = append(results, scraper.BookResult{
 			Title:        displayTitle,
 			Price:        price,

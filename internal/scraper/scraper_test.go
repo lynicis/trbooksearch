@@ -53,53 +53,6 @@ func TestParsePrice(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// MatchesQuery
-// ---------------------------------------------------------------------------
-
-func TestMatchesQuery(t *testing.T) {
-	tests := []struct {
-		name  string
-		title string
-		query string
-		want  bool
-	}{
-		// Positive matches
-		{name: "exact match", title: "Go Programming", query: "Go Programming", want: true},
-		{name: "case insensitive lower query", title: "Go Programming", query: "go programming", want: true},
-		{name: "case insensitive upper query", title: "go programming", query: "GO PROGRAMMING", want: true},
-		{name: "case insensitive mixed", title: "Go Programming", query: "gO pRoGrAmMiNg", want: true},
-		{name: "substring at start", title: "Go Programming Language", query: "Go", want: true},
-		{name: "substring in middle", title: "The Go Programming Language", query: "Go Programming", want: true},
-		{name: "substring at end", title: "Introduction to Go", query: "to Go", want: true},
-		{name: "single character match", title: "Go", query: "G", want: true},
-
-		// Negative matches
-		{name: "no match", title: "Go Programming", query: "Rust", want: false},
-		{name: "partial word no match", title: "Go", query: "Golang", want: false},
-		{name: "reversed containment", title: "Go", query: "Go Programming", want: false},
-
-		// Empty strings
-		{name: "empty query matches anything", title: "Go Programming", query: "", want: true},
-		{name: "empty title empty query", title: "", query: "", want: true},
-		{name: "empty title non-empty query", title: "", query: "Go", want: false},
-
-		// Turkish characters
-		{name: "Turkish İ in title", title: "İstanbul Kitabı", query: "istanbul", want: true}, // Go toLower maps İ → i
-		{name: "Turkish lowercase match", title: "kitap", query: "kitap", want: true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := MatchesQuery(tt.title, tt.query)
-			if got != tt.want {
-				t.Errorf("MatchesQuery(%q, %q) = %v, want %v",
-					tt.title, tt.query, got, tt.want)
-			}
-		})
-	}
-}
-
-// ---------------------------------------------------------------------------
 // Category.String
 // ---------------------------------------------------------------------------
 

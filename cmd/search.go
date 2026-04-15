@@ -18,12 +18,15 @@ import (
 )
 
 var (
-	flagISBN      bool
-	flagFlat      bool
-	flagLimit     int
-	flagSites     string
-	flagExclude   string
-	flagFirecrawl bool
+	flagISBN         bool
+	flagFlat         bool
+	flagLimit        int
+	flagSites        string
+	flagExclude      string
+	flagFirecrawl    bool
+	flagAuthor       string
+	flagPublisher    string
+	flagMinRelevance float64
 )
 
 var searchCmd = &cobra.Command{
@@ -42,6 +45,9 @@ func init() {
 	searchCmd.Flags().StringVar(&flagSites, "sites", "", "Sadece belirtilen sitelerde ara (virgülle ayır)")
 	searchCmd.Flags().StringVar(&flagExclude, "exclude", "", "Belirtilen siteleri hariç tut (virgülle ayır)")
 	searchCmd.Flags().BoolVar(&flagFirecrawl, "firecrawl", false, "Firecrawl API ile tüm siteleri tara (API anahtarı gerektirir)")
+	searchCmd.Flags().StringVar(&flagAuthor, "author", "", "Yazar adına göre filtrele")
+	searchCmd.Flags().StringVar(&flagPublisher, "publisher", "", "Yayınevi adına göre filtrele")
+	searchCmd.Flags().Float64Var(&flagMinRelevance, "min-relevance", 0.3, "Minimum alaka düzeyi eşiği (0.0-1.0)")
 	rootCmd.AddCommand(searchCmd)
 }
 
@@ -109,7 +115,15 @@ func runSearch(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
 
-	model := tui.NewModel(eng, query, searchType, !flagFlat, ctx)
+	opts := engine.SearchOptions{
+		Query:           query,
+		SearchType:      searchType,
+		AuthorFilter:    flagAuthor,
+		PublisherFilter: flagPublisher,
+		MinRelevance:    flagMinRelevance,
+	}
+
+	model := tui.NewModel(eng, opts, !flagFlat, ctx)
 	p := tea.NewProgram(model, tea.WithAltScreen())
 
 	finalModel, err := p.Run()

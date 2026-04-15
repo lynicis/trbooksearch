@@ -51,6 +51,7 @@ type BookResult struct {
 	Site         string   // e.g. "kitapyurdu.com"
 	Category     Category // Used or New
 	CargoUnknown bool     // True if cargo fee couldn't be determined
+	Relevance    float64  // 0.0–1.0 relevance score computed post-search
 }
 
 // Scraper is the interface each website scraper must implement.
@@ -185,10 +186,4 @@ func ParsePrice(s string) float64 {
 	var price float64
 	_, _ = fmt.Sscanf(s, "%f", &price)
 	return price
-}
-
-// MatchesQuery checks if a title contains the search phrase (case-insensitive).
-// Used to filter out irrelevant results from sites with broad search (nadirkitap, trendyol).
-func MatchesQuery(title, query string) bool {
-	return strings.Contains(strings.ToLower(title), strings.ToLower(query))
 }

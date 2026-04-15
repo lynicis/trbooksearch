@@ -92,8 +92,8 @@ func (n *Nadirkitap) Search(ctx context.Context, query string, searchType scrape
 		result.CargoFee, result.CargoUnknown = extractNadirkitapCargo(card)
 		result.TotalPrice = result.Price + result.CargoFee
 
-		// Only keep results with title containing the search phrase
-		if result.Title != "" && result.Price > 0 && scraper.MatchesQuery(result.Title, query) {
+		// Only keep results with valid title and price
+		if result.Title != "" && result.Price > 0 {
 			results = append(results, result)
 		}
 	})

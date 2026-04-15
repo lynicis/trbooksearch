@@ -10,6 +10,18 @@ import (
 )
 
 // ---------------------------------------------------------------------------
+// Helper to create SearchOptions with no relevance filtering (for legacy tests)
+// ---------------------------------------------------------------------------
+
+func optsNoFilter(query string, searchType scraper.SearchType) SearchOptions {
+	return SearchOptions{
+		Query:        query,
+		SearchType:   searchType,
+		MinRelevance: 0, // disable filtering for legacy tests
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Mock scraper
 // ---------------------------------------------------------------------------
 
@@ -136,7 +148,7 @@ func TestEngine_Search_SingleScraper_Success(t *testing.T) {
 	s := &mockScraper{name: "site-a", results: books}
 	e := NewEngine(nil, s)
 
-	result := e.Search(context.Background(), "go", scraper.TitleSearch, nil)
+	result := e.Search(context.Background(), optsNoFilter("go", scraper.TitleSearch), nil)
 
 	if len(result.Errors) != 0 {
 		t.Errorf("expected 0 errors, got %d", len(result.Errors))
@@ -172,7 +184,7 @@ func TestEngine_Search_MultipleScraper_Success(t *testing.T) {
 
 	// Use firecrawl so there's no 1-second sleep between scrapers
 	e := NewEngine(fc, s1, s2)
-	result := e.Search(context.Background(), "test", scraper.TitleSearch, nil)
+	result := e.Search(context.Background(), optsNoFilter("test", scraper.TitleSearch), nil)
 
 	if len(result.Errors) != 0 {
 		t.Errorf("expected 0 errors, got %d", len(result.Errors))
@@ -202,7 +214,7 @@ func TestEngine_Search_ScraperError(t *testing.T) {
 	s := &mockScraper{name: "failing-site", err: scrErr}
 	e := NewEngine(nil, s)
 
-	result := e.Search(context.Background(), "query", scraper.TitleSearch, nil)
+	result := e.Search(context.Background(), optsNoFilter("query", scraper.TitleSearch), nil)
 
 	if len(result.Results) != 0 {
 		t.Errorf("expected 0 results, got %d", len(result.Results))
@@ -243,7 +255,7 @@ func TestEngine_Search_MixedResults(t *testing.T) {
 	}
 
 	e := NewEngine(fc, s1, s2, s3)
-	result := e.Search(context.Background(), "mixed", scraper.TitleSearch, nil)
+	result := e.Search(context.Background(), optsNoFilter("mixed", scraper.TitleSearch), nil)
 
 	if len(result.Results) != 2 {
 		t.Fatalf("expected 2 results, got %d", len(result.Results))
@@ -279,7 +291,7 @@ func TestEngine_Search_SortsByTotalPrice(t *testing.T) {
 	s := &mockScraper{name: "site", results: books}
 	e := NewEngine(nil, s)
 
-	result := e.Search(context.Background(), "sort-test", scraper.TitleSearch, nil)
+	result := e.Search(context.Background(), optsNoFilter("sort-test", scraper.TitleSearch), nil)
 
 	if len(result.Results) != 5 {
 		t.Fatalf("expected 5 results, got %d", len(result.Results))
@@ -330,7 +342,7 @@ func TestEngine_Search_StatusChannel(t *testing.T) {
 		close(done)
 	}()
 
-	e.Search(context.Background(), "status-test", scraper.TitleSearch, ch)
+	e.Search(context.Background(), optsNoFilter("status-test", scraper.TitleSearch), ch)
 	<-done
 
 	// We expect 4 status messages: searching+done for ok-site, searching+error for err-site
@@ -383,7 +395,7 @@ func TestEngine_Search_NilStatusChannel(t *testing.T) {
 	e := NewEngine(nil, s)
 
 	// Should not panic with nil channel
-	result := e.Search(context.Background(), "nil-ch", scraper.TitleSearch, nil)
+	result := e.Search(context.Background(), optsNoFilter("nil-ch", scraper.TitleSearch), nil)
 
 	if len(result.Results) != 1 {
 		t.Fatalf("expected 1 result, got %d", len(result.Results))
@@ -400,7 +412,7 @@ func TestEngine_Search_NilStatusChannel(t *testing.T) {
 func TestEngine_Search_NoScrapers(t *testing.T) {
 	e := NewEngine(nil)
 
-	result := e.Search(context.Background(), "empty", scraper.TitleSearch, nil)
+	result := e.Search(context.Background(), optsNoFilter("empty", scraper.TitleSearch), nil)
 
 	if len(result.Results) != 0 {
 		t.Errorf("expected 0 results, got %d", len(result.Results))
@@ -423,7 +435,7 @@ func TestEngine_Search_NoScrapers_WithChannel(t *testing.T) {
 		close(done)
 	}()
 
-	result := e.Search(context.Background(), "empty", scraper.TitleSearch, ch)
+	result := e.Search(context.Background(), optsNoFilter("empty", scraper.TitleSearch), ch)
 	<-done
 
 	if len(result.Results) != 0 {
@@ -445,7 +457,7 @@ func TestEngine_Search_FirecrawlPassedToScrapers(t *testing.T) {
 	s3 := &mockScraper{name: "site-c"}
 
 	e := NewEngine(fc, s1, s2, s3)
-	e.Search(context.Background(), "fc-test", scraper.TitleSearch, nil)
+	e.Search(context.Background(), optsNoFilter("fc-test", scraper.TitleSearch), nil)
 
 	for _, s := range []*mockScraper{s1, s2, s3} {
 		if s.fc == nil {
@@ -462,7 +474,7 @@ func TestEngine_Search_FirecrawlNotPassedWhenNil(t *testing.T) {
 	s2 := &mockScraper{name: "site-b"}
 
 	e := NewEngine(nil, s1, s2)
-	e.Search(context.Background(), "no-fc", scraper.TitleSearch, nil)
+	e.Search(context.Background(), optsNoFilter("no-fc", scraper.TitleSearch), nil)
 
 	for _, s := range []*mockScraper{s1, s2} {
 		if s.fc != nil {
@@ -584,5 +596,60 @@ func TestGroupByCategory_OnlyNew(t *testing.T) {
 
 	if new_[0].Title != "New A" || new_[1].Title != "New B" {
 		t.Errorf("expected [New A, New B], got [%s, %s]", new_[0].Title, new_[1].Title)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// 17. TestFilterByRelevance
+// ---------------------------------------------------------------------------
+
+func TestFilterByRelevance(t *testing.T) {
+	results := []scraper.BookResult{
+		{Title: "Suç ve Ceza", Relevance: 0.9},
+		{Title: "Python Kitabı", Relevance: 0.1},
+		{Title: "Suç ve Ceza Özet", Relevance: 0.6},
+	}
+
+	filtered := FilterByRelevance(results, 0.3)
+	if len(filtered) != 2 {
+		t.Errorf("expected 2 results above threshold, got %d", len(filtered))
+	}
+	for _, r := range filtered {
+		if r.Relevance < 0.3 {
+			t.Errorf("result %q has relevance %.2f, below threshold 0.3", r.Title, r.Relevance)
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// 18. TestScoreAndFilterResults
+// ---------------------------------------------------------------------------
+
+func TestScoreAndFilterResults(t *testing.T) {
+	results := []scraper.BookResult{
+		{Title: "Suç ve Ceza", Author: "Dostoyevski", Publisher: "Can"},
+		{Title: "Mutfak Sırları", Author: "Arda", Publisher: "Alfa"},
+		{Title: "Suç ve Ceza - Özel Baskı", Author: "Fyodor Dostoyevski", Publisher: "İş Bankası"},
+	}
+
+	opts := SearchOptions{
+		Query:           "Suç ve Ceza",
+		AuthorFilter:    "",
+		PublisherFilter: "",
+		MinRelevance:    0.3,
+	}
+
+	scored := ScoreAndFilterResults(results, opts)
+	// "Mutfak Sırları" should be filtered out
+	for _, r := range scored {
+		if r.Title == "Mutfak Sırları" {
+			t.Errorf("irrelevant result %q should have been filtered", r.Title)
+		}
+	}
+	// Remaining results should have Relevance > 0
+	for _, r := range scored {
+		if r.Relevance <= 0 {
+			t.Errorf("result %q has zero relevance", r.Title)
+		}
 	}
 }

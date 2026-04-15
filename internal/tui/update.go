@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/lynicis/trbooksearch/internal/engine"
-	"github.com/lynicis/trbooksearch/internal/scraper"
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
@@ -114,12 +113,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.viewport.Height = vpHeight
 				return m, cmd
 			}
-		case "1", "2", "3", "4", "5", "6", "7":
+		case "1", "2", "3", "4", "5", "6", "7", "8":
 			if !m.searching {
-				col := int(msg.String()[0] - '1') // "1"->0, "7"->6
+				col := int(msg.String()[0] - '1') // "1"->0, "8"->7
 				m.filterActive = true
 				m.filterColumn = col
-				colNames := []string{"Site", "Başlık", "Yazar", "Satıcı", "Fiyat", "Kargo", "Toplam"}
+				colNames := []string{"Site", "Başlık", "Yazar", "Satıcı", "Fiyat", "Kargo", "Toplam", "Alaka"}
 				m.filterInput.Placeholder = colNames[col] + " filtre..."
 				cmd := m.filterInput.Focus()
 				m.filterInput.SetValue("")
@@ -132,7 +131,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "s":
 			if !m.searching {
-				sortCols := []int{-1, colIdxSite, colIdxTitle, colIdxAuthor, colIdxSeller, colIdxTotal}
+				sortCols := []int{-1, colIdxSite, colIdxTitle, colIdxAuthor, colIdxSeller, colIdxTotal, colIdxRelevance}
 				current := -1
 				for i, c := range sortCols {
 					if c == m.sortColumn {
@@ -202,7 +201,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return m, tea.Batch(
 			listenForStatus(statusCh),
-			runSearch(m.engine, m.ctx, m.query, m.searchType, statusCh),
+			runSearch(m.engine, m.ctx, m.searchOpts, statusCh),
 		)
 
 	case siteStatusMsg:
@@ -266,9 +265,9 @@ func listenForStatus(statusCh chan engine.SiteStatus) tea.Cmd {
 }
 
 // runSearch launches the engine search. When done, sends searchDoneMsg.
-func runSearch(eng *engine.Engine, ctx context.Context, query string, searchType scraper.SearchType, statusCh chan engine.SiteStatus) tea.Cmd {
+func runSearch(eng *engine.Engine, ctx context.Context, opts engine.SearchOptions, statusCh chan engine.SiteStatus) tea.Cmd {
 	return func() tea.Msg {
-		result := eng.Search(ctx, query, searchType, statusCh)
+		result := eng.Search(ctx, opts, statusCh)
 		return searchDoneMsg(result)
 	}
 }

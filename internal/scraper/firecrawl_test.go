@@ -162,7 +162,7 @@ func TestFetchHTML_HTTPError(t *testing.T) {
 func TestFetchHTML_APIError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(&map[string]any{
 			"success": false,
 			"data":    map[string]any{},
 			"error":   "rate limit exceeded",
@@ -185,7 +185,7 @@ func TestFetchHTML_APIError(t *testing.T) {
 func TestFetchHTML_EmptyHTML(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(firecrawlResponse{
+		_ = json.NewEncoder(w).Encode(&firecrawlResponse{
 			Success: true,
 			Data: struct {
 				HTML     string         `json:"html"`
@@ -293,7 +293,7 @@ func TestFetchHTML_VerifyHeaders(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(firecrawlResponse{
+		_ = json.NewEncoder(w).Encode(&firecrawlResponse{
 			Success: true,
 			Data: struct {
 				HTML     string         `json:"html"`

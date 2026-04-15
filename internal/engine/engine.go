@@ -6,6 +6,8 @@ import (
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/lynicis/trbooksearch/internal/relevance"
 	"github.com/lynicis/trbooksearch/internal/scraper"
 )
 
@@ -50,9 +52,48 @@ type SearchResult struct {
 	Errors  []SearchError
 }
 
+// SearchOptions holds query and filter parameters for relevance scoring.
+type SearchOptions struct {
+	Query           string
+	SearchType      scraper.SearchType
+	AuthorFilter    string  // from --author flag, empty = not set
+	PublisherFilter string  // from --publisher flag, empty = not set
+	MinRelevance    float64 // minimum relevance threshold (0.0-1.0)
+}
+
+// ScoreAndFilterResults computes relevance scores for all results and
+// filters out those below the minimum relevance threshold.
+func ScoreAndFilterResults(results []scraper.BookResult, opts SearchOptions) []scraper.BookResult {
+	for i := range results {
+		results[i].Relevance = relevance.ComputeRelevance(
+			results[i].Title,
+			results[i].Author,
+			results[i].Publisher,
+			opts.Query,
+			opts.AuthorFilter,
+			opts.PublisherFilter,
+		)
+	}
+	return FilterByRelevance(results, opts.MinRelevance)
+}
+
+// FilterByRelevance removes results below the given relevance threshold.
+func FilterByRelevance(results []scraper.BookResult, threshold float64) []scraper.BookResult {
+	if threshold <= 0 {
+		return results
+	}
+	filtered := make([]scraper.BookResult, 0, len(results))
+	for _, r := range results {
+		if r.Relevance >= threshold {
+			filtered = append(filtered, r)
+		}
+	}
+	return filtered
+}
+
 // Search dispatches the query to all scrapers with staggered parallel launch.
 // When Firecrawl is configured, scrapers use the API instead of local browsers.
-func (e *Engine) Search(ctx context.Context, query string, searchType scraper.SearchType, statusCh chan<- SiteStatus) SearchResult {
+func (e *Engine) Search(ctx context.Context, opts SearchOptions, statusCh chan<- SiteStatus) SearchResult {
 	var (
 		mu      sync.Mutex
 		wg      sync.WaitGroup
@@ -80,7 +121,7 @@ func (e *Engine) Search(ctx context.Context, query string, searchType scraper.Se
 				statusCh <- SiteStatus{Site: s.Name(), Status: "searching"}
 			}
 
-			books, err := s.Search(ctx, query, searchType)
+			books, err := s.Search(ctx, opts.Query, opts.SearchType)
 
 			mu.Lock()
 			defer mu.Unlock()
@@ -105,6 +146,8 @@ func (e *Engine) Search(ctx context.Context, query string, searchType scraper.Se
 	if statusCh != nil {
 		close(statusCh)
 	}
+
+	results = ScoreAndFilterResults(results, opts)
 
 	sort.Slice(results, func(i, j int) bool {
 		return results[i].TotalPrice < results[j].TotalPrice

@@ -877,8 +877,10 @@ func TestNadirkitap_Search_FiltersNonMatchingResults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(results) != 0 {
-		t.Errorf("expected 0 results (query mismatch), got %d", len(results))
+	// Scrapers no longer filter by query — relevance filtering is centralized in engine.
+	// The scraper should return all valid results regardless of query match.
+	if len(results) != 1 {
+		t.Errorf("expected 1 result (scraper returns all valid results), got %d", len(results))
 	}
 }
 
@@ -1080,8 +1082,10 @@ func TestTrendyol_Search_FiltersNonMatching(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(results) != 0 {
-		t.Errorf("expected 0 results for non-matching query, got %d", len(results))
+	// Scrapers no longer filter by query — relevance filtering is centralized in engine.
+	// The scraper should return all valid results regardless of query match.
+	if len(results) != 2 {
+		t.Errorf("expected 2 results (scraper returns all valid results), got %d", len(results))
 	}
 }
 
@@ -2575,8 +2579,10 @@ func TestDolap_Search_FiltersNonMatchingQuery(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(results) != 0 {
-		t.Errorf("expected 0 results for non-matching query, got %d", len(results))
+	// Scrapers no longer filter by query — relevance filtering is centralized in engine.
+	// The scraper should return all valid results regardless of query match.
+	if len(results) != 1 {
+		t.Errorf("expected 1 result (scraper returns all valid results), got %d", len(results))
 	}
 }
 

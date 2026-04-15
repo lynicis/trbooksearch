@@ -799,13 +799,13 @@ func TestNewModel(t *testing.T) {
 	eng := engine.NewEngine(nil) // no scrapers for testing
 	ctx := context.Background()
 
-	m := NewModel(eng, "test query", scraper.TitleSearch, true, ctx)
+	m := NewModel(eng, engine.SearchOptions{Query: "test query", SearchType: scraper.TitleSearch}, true, ctx)
 
-	if m.query != "test query" {
-		t.Errorf("expected query 'test query', got %q", m.query)
+	if m.searchOpts.Query != "test query" {
+		t.Errorf("expected query 'test query', got %q", m.searchOpts.Query)
 	}
-	if m.searchType != scraper.TitleSearch {
-		t.Errorf("expected TitleSearch, got %v", m.searchType)
+	if m.searchOpts.SearchType != scraper.TitleSearch {
+		t.Errorf("expected TitleSearch, got %v", m.searchOpts.SearchType)
 	}
 	if !m.grouped {
 		t.Error("expected grouped to be true")
@@ -843,10 +843,10 @@ func TestNewModel_WithISBNSearch(t *testing.T) {
 	eng := engine.NewEngine(nil)
 	ctx := context.Background()
 
-	m := NewModel(eng, "9780134190440", scraper.ISBNSearch, false, ctx)
+	m := NewModel(eng, engine.SearchOptions{Query: "9780134190440", SearchType: scraper.ISBNSearch}, false, ctx)
 
-	if m.searchType != scraper.ISBNSearch {
-		t.Errorf("expected ISBNSearch, got %v", m.searchType)
+	if m.searchOpts.SearchType != scraper.ISBNSearch {
+		t.Errorf("expected ISBNSearch, got %v", m.searchOpts.SearchType)
 	}
 	if m.grouped {
 		t.Error("expected grouped to be false")
@@ -862,7 +862,7 @@ func TestReservedLines(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("no results, no filter, no sort", func(t *testing.T) {
-		m := NewModel(eng, "test", scraper.TitleSearch, false, ctx)
+		m := NewModel(eng, engine.SearchOptions{Query: "test", SearchType: scraper.TitleSearch}, false, ctx)
 		m.results = engine.SearchResult{}
 		got := m.reservedLines()
 		// Base: 3 (header + footer + padding), no cheapest3, no filter, no sort
@@ -872,7 +872,7 @@ func TestReservedLines(t *testing.T) {
 	})
 
 	t.Run("with 1 result", func(t *testing.T) {
-		m := NewModel(eng, "test", scraper.TitleSearch, false, ctx)
+		m := NewModel(eng, engine.SearchOptions{Query: "test", SearchType: scraper.TitleSearch}, false, ctx)
 		m.results = engine.SearchResult{
 			Results: []scraper.BookResult{
 				makeResult("site1.com", "Book", "Auth", "Sell", 10, 5, 15),
@@ -886,7 +886,7 @@ func TestReservedLines(t *testing.T) {
 	})
 
 	t.Run("with 3 results", func(t *testing.T) {
-		m := NewModel(eng, "test", scraper.TitleSearch, false, ctx)
+		m := NewModel(eng, engine.SearchOptions{Query: "test", SearchType: scraper.TitleSearch}, false, ctx)
 		m.results = engine.SearchResult{
 			Results: []scraper.BookResult{
 				makeResult("s1", "B1", "A1", "S1", 10, 5, 15),
@@ -902,7 +902,7 @@ func TestReservedLines(t *testing.T) {
 	})
 
 	t.Run("with 5 results caps at 3 for cheapest panel", func(t *testing.T) {
-		m := NewModel(eng, "test", scraper.TitleSearch, false, ctx)
+		m := NewModel(eng, engine.SearchOptions{Query: "test", SearchType: scraper.TitleSearch}, false, ctx)
 		m.results = engine.SearchResult{
 			Results: make([]scraper.BookResult, 5),
 		}
@@ -917,7 +917,7 @@ func TestReservedLines(t *testing.T) {
 	})
 
 	t.Run("with active filter adds a line", func(t *testing.T) {
-		m := NewModel(eng, "test", scraper.TitleSearch, false, ctx)
+		m := NewModel(eng, engine.SearchOptions{Query: "test", SearchType: scraper.TitleSearch}, false, ctx)
 		m.results = engine.SearchResult{}
 		m.filterActive = true
 		got := m.reservedLines()
@@ -928,7 +928,7 @@ func TestReservedLines(t *testing.T) {
 	})
 
 	t.Run("with confirmed filter value adds a line", func(t *testing.T) {
-		m := NewModel(eng, "test", scraper.TitleSearch, false, ctx)
+		m := NewModel(eng, engine.SearchOptions{Query: "test", SearchType: scraper.TitleSearch}, false, ctx)
 		m.results = engine.SearchResult{}
 		m.filterActive = false
 		m.filterInput.SetValue("go")
@@ -940,7 +940,7 @@ func TestReservedLines(t *testing.T) {
 	})
 
 	t.Run("with sort indicator adds a line", func(t *testing.T) {
-		m := NewModel(eng, "test", scraper.TitleSearch, false, ctx)
+		m := NewModel(eng, engine.SearchOptions{Query: "test", SearchType: scraper.TitleSearch}, false, ctx)
 		m.results = engine.SearchResult{}
 		m.sortColumn = colIdxPrice
 		m.sortDirection = 0
@@ -952,7 +952,7 @@ func TestReservedLines(t *testing.T) {
 	})
 
 	t.Run("sort direction 2 does not add a line", func(t *testing.T) {
-		m := NewModel(eng, "test", scraper.TitleSearch, false, ctx)
+		m := NewModel(eng, engine.SearchOptions{Query: "test", SearchType: scraper.TitleSearch}, false, ctx)
 		m.results = engine.SearchResult{}
 		m.sortColumn = colIdxPrice
 		m.sortDirection = 2
@@ -964,7 +964,7 @@ func TestReservedLines(t *testing.T) {
 	})
 
 	t.Run("everything active", func(t *testing.T) {
-		m := NewModel(eng, "test", scraper.TitleSearch, false, ctx)
+		m := NewModel(eng, engine.SearchOptions{Query: "test", SearchType: scraper.TitleSearch}, false, ctx)
 		m.results = engine.SearchResult{
 			Results: []scraper.BookResult{
 				makeResult("s1", "B1", "A1", "S1", 10, 5, 15),
@@ -990,7 +990,7 @@ func TestReservedLines(t *testing.T) {
 func TestModel_View_Quitting(t *testing.T) {
 	eng := engine.NewEngine(nil)
 	ctx := context.Background()
-	m := NewModel(eng, "test", scraper.TitleSearch, false, ctx)
+	m := NewModel(eng, engine.SearchOptions{Query: "test", SearchType: scraper.TitleSearch}, false, ctx)
 	m.Quitting = true
 
 	got := m.View()
@@ -1006,7 +1006,7 @@ func TestModel_View_Quitting(t *testing.T) {
 func TestModel_View_Searching(t *testing.T) {
 	eng := engine.NewEngine(nil)
 	ctx := context.Background()
-	m := NewModel(eng, "dune", scraper.TitleSearch, false, ctx)
+	m := NewModel(eng, engine.SearchOptions{Query: "dune", SearchType: scraper.TitleSearch}, false, ctx)
 	m.searching = true
 	m.startTime = time.Now().Add(-5 * time.Second)
 	m.elapsed = 5 * time.Second
@@ -1027,7 +1027,7 @@ func TestModel_View_Searching(t *testing.T) {
 func TestModel_View_WithResults(t *testing.T) {
 	eng := engine.NewEngine(nil)
 	ctx := context.Background()
-	m := NewModel(eng, "test", scraper.TitleSearch, false, ctx)
+	m := NewModel(eng, engine.SearchOptions{Query: "test", SearchType: scraper.TitleSearch}, false, ctx)
 	m.searching = false
 	m.elapsed = 3 * time.Second
 	m.results = engine.SearchResult{
@@ -1052,7 +1052,7 @@ func TestModel_View_WithResults(t *testing.T) {
 func TestModel_View_WithFilterActive(t *testing.T) {
 	eng := engine.NewEngine(nil)
 	ctx := context.Background()
-	m := NewModel(eng, "test", scraper.TitleSearch, false, ctx)
+	m := NewModel(eng, engine.SearchOptions{Query: "test", SearchType: scraper.TitleSearch}, false, ctx)
 	m.searching = false
 	m.elapsed = 1 * time.Second
 	m.results = engine.SearchResult{
@@ -1076,7 +1076,7 @@ func TestModel_View_WithFilterActive(t *testing.T) {
 func TestModel_View_WithConfirmedFilter(t *testing.T) {
 	eng := engine.NewEngine(nil)
 	ctx := context.Background()
-	m := NewModel(eng, "test", scraper.TitleSearch, false, ctx)
+	m := NewModel(eng, engine.SearchOptions{Query: "test", SearchType: scraper.TitleSearch}, false, ctx)
 	m.searching = false
 	m.elapsed = 1 * time.Second
 	m.results = engine.SearchResult{
@@ -1100,7 +1100,7 @@ func TestModel_View_WithConfirmedFilter(t *testing.T) {
 func TestModel_View_WithSort(t *testing.T) {
 	eng := engine.NewEngine(nil)
 	ctx := context.Background()
-	m := NewModel(eng, "test", scraper.TitleSearch, false, ctx)
+	m := NewModel(eng, engine.SearchOptions{Query: "test", SearchType: scraper.TitleSearch}, false, ctx)
 	m.searching = false
 	m.elapsed = 1 * time.Second
 	m.results = engine.SearchResult{
@@ -1127,7 +1127,7 @@ func TestModel_View_WithSort(t *testing.T) {
 func TestModel_View_SortDescending(t *testing.T) {
 	eng := engine.NewEngine(nil)
 	ctx := context.Background()
-	m := NewModel(eng, "test", scraper.TitleSearch, false, ctx)
+	m := NewModel(eng, engine.SearchOptions{Query: "test", SearchType: scraper.TitleSearch}, false, ctx)
 	m.searching = false
 	m.elapsed = 1 * time.Second
 	m.results = engine.SearchResult{
@@ -1155,7 +1155,7 @@ func TestModel_View_SortDescending(t *testing.T) {
 func TestRenderSearching(t *testing.T) {
 	eng := engine.NewEngine(nil)
 	ctx := context.Background()
-	m := NewModel(eng, "dune", scraper.TitleSearch, false, ctx)
+	m := NewModel(eng, engine.SearchOptions{Query: "dune", SearchType: scraper.TitleSearch}, false, ctx)
 	m.searching = true
 	m.elapsed = 2 * time.Second
 
@@ -1241,7 +1241,7 @@ func TestRenderTable(t *testing.T) {
 func TestRefreshViewport(t *testing.T) {
 	eng := engine.NewEngine(nil)
 	ctx := context.Background()
-	m := NewModel(eng, "test", scraper.TitleSearch, false, ctx)
+	m := NewModel(eng, engine.SearchOptions{Query: "test", SearchType: scraper.TitleSearch}, false, ctx)
 	m.results = engine.SearchResult{
 		Results: []scraper.BookResult{
 			makeResult("s1", "B1", "A1", "S1", 10, 5, 15),
@@ -1274,7 +1274,7 @@ func TestRefreshViewport(t *testing.T) {
 func TestInit(t *testing.T) {
 	eng := engine.NewEngine(nil)
 	ctx := context.Background()
-	m := NewModel(eng, "test", scraper.TitleSearch, false, ctx)
+	m := NewModel(eng, engine.SearchOptions{Query: "test", SearchType: scraper.TitleSearch}, false, ctx)
 
 	cmd := m.Init()
 	if cmd == nil {
@@ -1337,7 +1337,7 @@ func TestRunSearch(t *testing.T) {
 	ctx := context.Background()
 	ch := make(chan engine.SiteStatus, 10)
 
-	cmd := runSearch(eng, ctx, "test", scraper.TitleSearch, ch)
+	cmd := runSearch(eng, ctx, engine.SearchOptions{Query: "test", SearchType: scraper.TitleSearch}, ch)
 	msg := cmd()
 
 	result, ok := msg.(searchDoneMsg)
@@ -1358,7 +1358,7 @@ func TestRunSearch(t *testing.T) {
 func newTestModel() Model {
 	eng := engine.NewEngine(nil)
 	ctx := context.Background()
-	m := NewModel(eng, "test", scraper.TitleSearch, true, ctx)
+	m := NewModel(eng, engine.SearchOptions{Query: "test", SearchType: scraper.TitleSearch}, true, ctx)
 	m.searching = false
 	m.elapsed = 2 * time.Second
 	m.width = 200
@@ -1562,7 +1562,7 @@ func TestUpdate_WindowSizeMsg_UpdatesExistingViewport(t *testing.T) {
 func TestUpdate_SearchStartMsg(t *testing.T) {
 	eng := engine.NewEngine(nil)
 	ctx := context.Background()
-	m := NewModel(eng, "test", scraper.TitleSearch, false, ctx)
+	m := NewModel(eng, engine.SearchOptions{Query: "test", SearchType: scraper.TitleSearch}, false, ctx)
 
 	newModel, cmd := m.Update(searchStartMsg{})
 	model := newModel.(Model)
@@ -1598,7 +1598,7 @@ func TestUpdate_SearchDoneMsg(t *testing.T) {
 func TestUpdate_SiteStatusMsg(t *testing.T) {
 	eng := engine.NewEngine(nil)
 	ctx := context.Background()
-	m := NewModel(eng, "test", scraper.TitleSearch, false, ctx)
+	m := NewModel(eng, engine.SearchOptions{Query: "test", SearchType: scraper.TitleSearch}, false, ctx)
 	m.searching = true
 	ch := make(chan engine.SiteStatus, 10)
 	m.statusCh = ch
@@ -1621,7 +1621,7 @@ func TestUpdate_SiteStatusMsg(t *testing.T) {
 func TestUpdate_SiteStatusMsg_NilChannel(t *testing.T) {
 	eng := engine.NewEngine(nil)
 	ctx := context.Background()
-	m := NewModel(eng, "test", scraper.TitleSearch, false, ctx)
+	m := NewModel(eng, engine.SearchOptions{Query: "test", SearchType: scraper.TitleSearch}, false, ctx)
 	m.searching = true
 	m.statusCh = nil
 
@@ -1635,7 +1635,7 @@ func TestUpdate_SiteStatusMsg_NilChannel(t *testing.T) {
 func TestUpdate_TickMsg_WhileSearching(t *testing.T) {
 	eng := engine.NewEngine(nil)
 	ctx := context.Background()
-	m := NewModel(eng, "test", scraper.TitleSearch, false, ctx)
+	m := NewModel(eng, engine.SearchOptions{Query: "test", SearchType: scraper.TitleSearch}, false, ctx)
 	m.searching = true
 	m.startTime = time.Now().Add(-2 * time.Second)
 
@@ -1661,7 +1661,7 @@ func TestUpdate_TickMsg_NotSearching(t *testing.T) {
 func TestUpdate_SpinnerUpdate_WhileSearching(t *testing.T) {
 	eng := engine.NewEngine(nil)
 	ctx := context.Background()
-	m := NewModel(eng, "test", scraper.TitleSearch, false, ctx)
+	m := NewModel(eng, engine.SearchOptions{Query: "test", SearchType: scraper.TitleSearch}, false, ctx)
 	m.searching = true
 
 	// Send a spinner tick message
@@ -1687,7 +1687,7 @@ func TestUpdate_FilterActive_TypesText(t *testing.T) {
 func TestUpdate_SlashKey_DuringSearch_Ignored(t *testing.T) {
 	eng := engine.NewEngine(nil)
 	ctx := context.Background()
-	m := NewModel(eng, "test", scraper.TitleSearch, false, ctx)
+	m := NewModel(eng, engine.SearchOptions{Query: "test", SearchType: scraper.TitleSearch}, false, ctx)
 	m.searching = true
 
 	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
@@ -1700,7 +1700,7 @@ func TestUpdate_SlashKey_DuringSearch_Ignored(t *testing.T) {
 func TestUpdate_SortKey_DuringSearch_Ignored(t *testing.T) {
 	eng := engine.NewEngine(nil)
 	ctx := context.Background()
-	m := NewModel(eng, "test", scraper.TitleSearch, false, ctx)
+	m := NewModel(eng, engine.SearchOptions{Query: "test", SearchType: scraper.TitleSearch}, false, ctx)
 	m.searching = true
 
 	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}})

@@ -69,7 +69,7 @@ func (t *Trendyol) Search(ctx context.Context, query string, searchType scraper.
 
 		// Product name
 		name := strings.TrimSpace(card.Find("span.product-name").Text())
-		if name == "" || !scraper.MatchesQuery(name, query) {
+		if name == "" {
 			return
 		}
 

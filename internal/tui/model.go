@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/lynicis/trbooksearch/internal/engine"
-	"github.com/lynicis/trbooksearch/internal/scraper"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -16,8 +15,7 @@ import (
 // Model is the Bubble Tea model for the search TUI.
 type Model struct {
 	engine     *engine.Engine
-	query      string
-	searchType scraper.SearchType
+	searchOpts engine.SearchOptions
 	grouped    bool // true = show used/new sections, false = flat list
 	ctx        context.Context
 
@@ -48,7 +46,7 @@ type Model struct {
 }
 
 // NewModel creates a new TUI model ready for tea.NewProgram.
-func NewModel(eng *engine.Engine, query string, searchType scraper.SearchType, grouped bool, ctx context.Context) Model {
+func NewModel(eng *engine.Engine, opts engine.SearchOptions, grouped bool, ctx context.Context) Model {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
@@ -68,8 +66,7 @@ func NewModel(eng *engine.Engine, query string, searchType scraper.SearchType, g
 
 	return Model{
 		engine:        eng,
-		query:         query,
-		searchType:    searchType,
+		searchOpts:    opts,
 		grouped:       grouped,
 		ctx:           ctx,
 		searching:     true,

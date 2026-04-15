@@ -39,25 +39,27 @@ var (
 
 // Column widths
 const (
-	colSite   = 18
-	colTitle  = 40
-	colAuthor = 20
-	colSeller = 16
-	colPrice  = 10
-	colCargo  = 10
-	colTotal  = 10
-	colNote   = 20
+	colSite      = 18
+	colTitle     = 40
+	colAuthor    = 20
+	colSeller    = 16
+	colPrice     = 10
+	colCargo     = 10
+	colTotal     = 10
+	colRelevance = 6
+	colNote      = 20
 )
 
 // Column index constants for filter/sort
 const (
-	colIdxSite   = 0
-	colIdxTitle  = 1
-	colIdxAuthor = 2
-	colIdxSeller = 3
-	colIdxPrice  = 4
-	colIdxCargo  = 5
-	colIdxTotal  = 6
+	colIdxSite      = 0
+	colIdxTitle     = 1
+	colIdxAuthor    = 2
+	colIdxSeller    = 3
+	colIdxPrice     = 4
+	colIdxCargo     = 5
+	colIdxTotal     = 6
+	colIdxRelevance = 7
 )
 
 // View renders the TUI.
@@ -77,7 +79,7 @@ func (m Model) View() string {
 		// Header
 		fmt.Fprintf(&b, " %s Arama: %s\n",
 			titleStyle.Render("📖"),
-			titleStyle.Render(fmt.Sprintf("%q", m.query)),
+			titleStyle.Render(fmt.Sprintf("%q", m.searchOpts.Query)),
 		)
 
 		// Cheapest 3 panel (always from full results, not filtered)
@@ -89,7 +91,7 @@ func (m Model) View() string {
 		// Filter bar (when typing) or filter indicator (when confirmed)
 		if m.filterActive {
 			colLabel := "Tümü"
-			colNames := []string{"Site", "Başlık", "Yazar", "Satıcı", "Fiyat", "Kargo", "Toplam"}
+			colNames := []string{"Site", "Başlık", "Yazar", "Satıcı", "Fiyat", "Kargo", "Toplam", "Alaka"}
 			if m.filterColumn >= 0 && m.filterColumn < len(colNames) {
 				colLabel = colNames[m.filterColumn]
 			}
@@ -97,7 +99,7 @@ func (m Model) View() string {
 		} else if m.filterInput.Value() != "" {
 			// Show confirmed filter indicator
 			colLabel := "Tümü"
-			colNames := []string{"Site", "Başlık", "Yazar", "Satıcı", "Fiyat", "Kargo", "Toplam"}
+			colNames := []string{"Site", "Başlık", "Yazar", "Satıcı", "Fiyat", "Kargo", "Toplam", "Alaka"}
 			if m.filterColumn >= 0 && m.filterColumn < len(colNames) {
 				colLabel = colNames[m.filterColumn]
 			}
@@ -107,7 +109,7 @@ func (m Model) View() string {
 
 		// Sort indicator (when not default)
 		if m.sortColumn != -1 && m.sortDirection != 2 {
-			colNames := []string{"Site", "Başlık", "Yazar", "Satıcı", "Fiyat", "Kargo", "Toplam"}
+			colNames := []string{"Site", "Başlık", "Yazar", "Satıcı", "Fiyat", "Kargo", "Toplam", "Alaka"}
 			arrow := "↑"
 			if m.sortDirection == 1 {
 				arrow = "↓"
@@ -134,9 +136,9 @@ func (m Model) View() string {
 		b.WriteString("\n")
 		totalContentLines := m.viewport.TotalLineCount()
 		scrollPct := m.viewport.ScrollPercent() * 100
-		footer := fmt.Sprintf(" ↑↓ kaydır • / filtre • 1-7 sütun • s sırala • q çıkış • %%%d", int(scrollPct))
+		footer := fmt.Sprintf(" ↑↓ kaydır • / filtre • 1-8 sütun • s sırala • q çıkış • %%%d", int(scrollPct))
 		if totalContentLines <= m.viewport.Height {
-			footer = " / filtre • 1-7 sütun • s sırala • q çıkış"
+			footer = " / filtre • 1-8 sütun • s sırala • q çıkış"
 		}
 		b.WriteString(helpStyle.Render(footer))
 		b.WriteString("\n")
@@ -149,7 +151,7 @@ func (m Model) View() string {
 func (m Model) renderSearching(b *strings.Builder) {
 	fmt.Fprintf(b, "%s Aranıyor: %s  %s\n\n",
 		m.spinner.View(),
-		titleStyle.Render(fmt.Sprintf("%q", m.query)),
+		titleStyle.Render(fmt.Sprintf("%q", m.searchOpts.Query)),
 		dimStyle.Render(fmt.Sprintf("(%.1fs)", m.elapsed.Seconds())),
 	)
 
@@ -251,7 +253,7 @@ func renderCheapest3(results []scraper.BookResult) string {
 
 // renderTable renders a formatted table of book results.
 func renderTable(b *strings.Builder, results []scraper.BookResult) {
-	header := fmt.Sprintf("  %-*s %-*s %-*s %-*s %*s %*s %*s %-*s",
+	header := fmt.Sprintf("  %-*s %-*s %-*s %-*s %*s %*s %*s %*s %-*s",
 		colSite, "Site",
 		colTitle, "Başlık",
 		colAuthor, "Yazar",
@@ -259,6 +261,7 @@ func renderTable(b *strings.Builder, results []scraper.BookResult) {
 		colPrice, "Fiyat",
 		colCargo, "Kargo",
 		colTotal, "Toplam",
+		colRelevance, "Alaka",
 		colNote, "Not",
 	)
 	b.WriteString(headerStyle.Render(header))
@@ -290,12 +293,24 @@ func renderTable(b *strings.Builder, results []scraper.BookResult) {
 
 		total := fmt.Sprintf("%.2f₺", r.TotalPrice)
 
+		// Relevance column with color coding
+		rel := fmt.Sprintf("%%%d", int(r.Relevance*100))
+		var relStyled string
+		switch {
+		case r.Relevance >= 0.8:
+			relStyled = priceStyle.Render(fmt.Sprintf("%*s", colRelevance, rel))
+		case r.Relevance >= 0.5:
+			relStyled = warningStyle.Render(fmt.Sprintf("%*s", colRelevance, rel))
+		default:
+			relStyled = dimStyle.Render(fmt.Sprintf("%*s", colRelevance, rel))
+		}
+
 		if r.FreeCargo || r.CargoFee == 0 {
 			cargo = freeCargoStyle.Render(cargo)
 		}
 
 		// Build line manually — use paddedTitle (with hyperlink) instead of %-*s for title
-		line := fmt.Sprintf("  %-*s %s %-*s %-*s %*s %*s %*s %-*s",
+		line := fmt.Sprintf("  %-*s %s %-*s %-*s %*s %*s %*s %s %-*s",
 			colSite, site,
 			paddedTitle,
 			colAuthor, author,
@@ -303,6 +318,7 @@ func renderTable(b *strings.Builder, results []scraper.BookResult) {
 			colPrice, price,
 			colCargo, cargo,
 			colTotal, total,
+			relStyled,
 			colNote, note,
 		)
 		b.WriteString(line)
@@ -487,6 +503,8 @@ func matchesFilter(r scraper.BookResult, text string, column int) bool {
 		return match(fmt.Sprintf("%.2f", r.CargoFee))
 	case colIdxTotal:
 		return match(fmt.Sprintf("%.2f", r.TotalPrice))
+	case colIdxRelevance:
+		return match(fmt.Sprintf("%d", int(r.Relevance*100)))
 	default: // -1 = all columns
 		return match(r.Site) || match(r.Title) || match(r.Author) ||
 			match(r.Seller) || match(r.LoyaltyNote)
@@ -517,6 +535,8 @@ func applySort(results []scraper.BookResult, column int, direction int) []scrape
 			cmp = compareFloat(sorted[i].CargoFee, sorted[j].CargoFee)
 		case colIdxTotal:
 			cmp = compareFloat(sorted[i].TotalPrice, sorted[j].TotalPrice)
+		case colIdxRelevance:
+			cmp = compareFloat(sorted[i].Relevance, sorted[j].Relevance)
 		}
 		if direction == 1 { // descending
 			cmp = -cmp

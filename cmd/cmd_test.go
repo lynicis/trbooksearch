@@ -58,6 +58,9 @@ func TestSearchCmd_Flags(t *testing.T) {
 		{"sites", "string"},
 		{"exclude", "string"},
 		{"firecrawl", "bool"},
+		{"author", "string"},
+		{"publisher", "string"},
+		{"min-relevance", "float64"},
 	}
 
 	for _, f := range flags {
