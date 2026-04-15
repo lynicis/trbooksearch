@@ -28,7 +28,11 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, fmt.Errorf("config dir: %w", err)
 	}
+	return loadFrom(configDir)
+}
 
+// loadFrom reads the config file from the given base config directory.
+func loadFrom(configDir string) (Config, error) {
 	path := filepath.Join(configDir, appName, "config.yaml")
 
 	data, err := os.ReadFile(path)
@@ -67,7 +71,11 @@ func Save(cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("config dir: %w", err)
 	}
+	return saveTo(cfg, configDir)
+}
 
+// saveTo writes the config to the given base config directory.
+func saveTo(cfg Config, configDir string) error {
 	dir := filepath.Join(configDir, appName)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("creating config dir: %w", err)

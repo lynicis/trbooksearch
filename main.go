@@ -2,13 +2,9 @@ package main
 
 import "github.com/lynicis/trbooksearch/cmd"
 
-var (
-	version = "dev"
-	commit  = "none"
-	date    = "unknown"
-)
+var version = "1.3.0"
 
 func main() {
-	cmd.SetVersionInfo(version, commit, date)
+	cmd.SetVersionInfo(version)
 	cmd.Execute()
 }

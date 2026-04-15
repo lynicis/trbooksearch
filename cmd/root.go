@@ -7,16 +7,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	appVersion = "dev"
-	appCommit  = "none"
-	appDate    = "unknown"
-)
+var appVersion = "dev"
 
-func SetVersionInfo(version, commit, date string) {
+func SetVersionInfo(version string) {
 	appVersion = version
-	appCommit = commit
-	appDate = date
 }
 
 var rootCmd = &cobra.Command{
@@ -41,7 +35,7 @@ func init() {
 		Use:   "version",
 		Short: "Sürüm bilgilerini göster",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("trbooksearch %s (commit: %s, built: %s)\n", appVersion, appCommit, appDate)
+			fmt.Printf("trbooksearch %s\n", appVersion)
 		},
 	})
 }
