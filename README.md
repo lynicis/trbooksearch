@@ -159,6 +159,10 @@ trbooksearch search --firecrawl "Otostopcularin Galaksi Rehberi"
 | [amazon.com.tr](https://www.amazon.com.tr) | Browser / Firecrawl | Shows Prime pricing |
 | [trendyol.com](https://www.trendyol.com) | Browser / Firecrawl | Shows Elite pricing |
 | [hepsiburada.com](https://www.hepsiburada.com) | Browser / Firecrawl | Shows Premium pricing |
+| [pandora.com.tr](https://pandora.com.tr) | Firecrawl only | Book store |
+| [dr.com.tr](https://dr.com.tr) | Firecrawl only | Book store |
+| [idefix.com](https://idefix.com) | Browser / Firecrawl | Book store |
+| [bkmkitap.com](https://bkmkitap.com) | Browser / Firecrawl | Book store |
 
 ### Used Books (Ikinci El Kitaplar)
 
