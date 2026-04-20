@@ -36,7 +36,12 @@ func (h *Hepsiburada) Search(ctx context.Context, query string, searchType scrap
 	var pageHTML string
 	var err error
 	if h.firecrawl != nil {
-		pageHTML, err = h.firecrawl.FetchHTML(ctx, searchURL, 5000)
+		pageHTML, err = h.firecrawl.FetchHTMLWithOptions(ctx, searchURL, scraper.FetchOptions{
+			WaitFor: 8000,
+			Timeout: 120000,
+			Proxy:   "enhanced",
+			Retries: 1,
+		})
 	} else {
 		// Use FetchPageWithWait — Hepsiburada needs JS to render product cards
 		pageHTML, err = scraper.FetchPageWithWait(ctx, searchURL, `[class*="productCard-module_article"]`)

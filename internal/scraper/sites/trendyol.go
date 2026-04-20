@@ -36,7 +36,12 @@ func (t *Trendyol) Search(ctx context.Context, query string, searchType scraper.
 	var pageHTML string
 	var err error
 	if t.firecrawl != nil {
-		pageHTML, err = t.firecrawl.FetchHTML(ctx, searchURL, 5000)
+		pageHTML, err = t.firecrawl.FetchHTMLWithOptions(ctx, searchURL, scraper.FetchOptions{
+			WaitFor: 8000,
+			Timeout: 120000,
+			Proxy:   "enhanced",
+			Retries: 1,
+		})
 	} else {
 		// Use FetchPageWithWait — Trendyol is an SPA that needs time to render product cards
 		pageHTML, err = scraper.FetchPageWithWait(ctx, searchURL, "a.product-card")

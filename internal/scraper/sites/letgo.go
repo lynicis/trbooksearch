@@ -36,7 +36,12 @@ func (l *Letgo) Search(ctx context.Context, query string, searchType scraper.Sea
 
 	searchURL := fmt.Sprintf(letgoSearchURL, url.QueryEscape(query))
 
-	pageHTML, err := l.firecrawl.FetchHTML(ctx, searchURL, 5000)
+	pageHTML, err := l.firecrawl.FetchHTMLWithOptions(ctx, searchURL, scraper.FetchOptions{
+		WaitFor: 8000,
+		Timeout: 120000,
+		Proxy:   "enhanced",
+		Retries: 1,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("letgo: %w", err)
 	}

@@ -36,7 +36,12 @@ func (d *Dolap) Search(ctx context.Context, query string, searchType scraper.Sea
 
 	searchURL := fmt.Sprintf(dolapSearchURL, url.QueryEscape(query))
 
-	pageHTML, err := d.firecrawl.FetchHTML(ctx, searchURL, 0)
+	pageHTML, err := d.firecrawl.FetchHTMLWithOptions(ctx, searchURL, scraper.FetchOptions{
+		WaitFor: 5000,
+		Timeout: 90000,
+		Proxy:   "enhanced",
+		Retries: 1,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("dolap: %w", err)
 	}

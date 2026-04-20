@@ -36,7 +36,12 @@ func (a *Amazon) Search(ctx context.Context, query string, searchType scraper.Se
 	var pageHTML string
 	var err error
 	if a.firecrawl != nil {
-		pageHTML, err = a.firecrawl.FetchHTML(ctx, searchURL, 5000)
+		pageHTML, err = a.firecrawl.FetchHTMLWithOptions(ctx, searchURL, scraper.FetchOptions{
+			WaitFor: 6000,
+			Timeout: 120000,
+			Proxy:   "enhanced",
+			Retries: 1,
+		})
 	} else {
 		pageHTML, err = scraper.FetchPageWithWait(ctx, searchURL, `[data-component-type="s-search-result"]`)
 	}

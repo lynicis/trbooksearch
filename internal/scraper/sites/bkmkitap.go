@@ -33,7 +33,12 @@ func (b *Bkmkitap) Search(ctx context.Context, query string, searchType scraper.
 	var pageHTML string
 	var err error
 	if b.firecrawl != nil {
-		pageHTML, err = b.firecrawl.FetchHTML(ctx, searchURL, 5000)
+		pageHTML, err = b.firecrawl.FetchHTMLWithOptions(ctx, searchURL, scraper.FetchOptions{
+			WaitFor: 5000,
+			Timeout: 90000,
+			Proxy:   "auto",
+			Retries: 1,
+		})
 	} else {
 		pageHTML, err = scraper.FetchPageWithWait(ctx, searchURL, ".waw-product")
 	}
