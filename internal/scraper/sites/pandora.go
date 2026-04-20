@@ -32,12 +32,20 @@ func (p *Pandora) Search(ctx context.Context, query string, searchType scraper.S
 		return nil, fmt.Errorf("pandora.com.tr Firecrawl gerektirir (--firecrawl bayrağını kullanın)")
 	}
 
+	// Pandora's real search endpoint is /Arama/Keyword?sozcuk=<query>. The
+	// previously used /Arama?q=<query> route returns a "Geçersiz arama türü"
+	// error page and produces zero results.
 	searchURL := fmt.Sprintf(
-		"https://www.pandora.com.tr/Arama?q=%s",
+		"https://www.pandora.com.tr/Arama/Keyword?sozcuk=%s",
 		url.QueryEscape(query),
 	)
 
-	pageHTML, err := p.firecrawl.FetchHTML(ctx, searchURL, 8000)
+	pageHTML, err := p.firecrawl.FetchHTMLWithOptions(ctx, searchURL, scraper.FetchOptions{
+		WaitFor: 8000,
+		Timeout: 90000,
+		Proxy:   "auto",
+		Retries: 1,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("pandora: %w", err)
 	}
@@ -52,135 +60,128 @@ func (p *Pandora) Search(ctx context.Context, query string, searchType scraper.S
 
 	var results []scraper.BookResult
 	productCount := 0
-	cargoFee := 24.99
+	const cargoFee = 24.99
 
-	// Pandora uses various product card selectors depending on rendering.
-	// Try multiple approaches since it's a Next.js SPA.
-	selectors := []string{
-		"a[href*='/kitap/']",
-		".product-card",
-		".book-card",
-		"[data-testid='product-card']",
-		".search-result-item",
-	}
+	// Search result cards are anchors pointing to /kitap/{slug}/{id}. The
+	// anchor wraps the whole card — title in <h3>, author in a <span>,
+	// publisher in a <p>, and price in a <div> containing a <span>…TL.
+	doc.Find(`a[href*="/kitap/"]`).EachWithBreak(func(i int, s *goquery.Selection) bool {
+		if productCount >= p.limit {
+			return false
+		}
 
-	for _, sel := range selectors {
-		doc.Find(sel).Each(func(i int, s *goquery.Selection) {
-			if productCount >= p.limit {
-				return
-			}
+		href, exists := s.Attr("href")
+		if !exists {
+			return true
+		}
+		href = strings.TrimSpace(href)
+		if href == "" {
+			return true
+		}
 
-			var title, author, publisher, productURL string
-			var price float64
+		// Must look like a product link: /kitap/<slug>/<id>
+		if !isPandoraProductHref(href) {
+			return true
+		}
 
-			if sel == "a[href*='/kitap/']" {
-				// Extract from link-based cards
-				if href, exists := s.Attr("href"); exists {
-					href = strings.TrimSpace(href)
-					if href != "" {
-						if !strings.HasPrefix(href, "http") {
-							productURL = "https://www.pandora.com.tr" + href
-						} else {
-							productURL = href
-						}
-					}
-					// Try to extract title from URL slug
-					parts := strings.Split(href, "/")
-					for j, part := range parts {
-						if part == "kitap" && j+1 < len(parts) {
-							title = strings.ReplaceAll(parts[j+1], "-", " ")
-							break
-						}
-					}
-				}
+		productURL := href
+		if !strings.HasPrefix(productURL, "http") {
+			productURL = "https://www.pandora.com.tr" + productURL
+		}
 
-				// Look for title text in card
-				cardTitle := strings.TrimSpace(s.Find("h2, h3, .title, .book-title, .product-title").First().Text())
-				if cardTitle != "" {
-					title = cardTitle
-				}
-				if title == "" {
-					title = strings.TrimSpace(s.Text())
-					// Limit to reasonable title length
-					if len(title) > 200 {
-						title = ""
-					}
-				}
+		title := strings.TrimSpace(s.Find("h3").First().Text())
+		if title == "" {
+			return true
+		}
 
-				// Look for price
-				s.Find("span, p, div").Each(func(_ int, el *goquery.Selection) {
-					text := strings.TrimSpace(el.Text())
-					if (strings.Contains(text, "TL") || strings.Contains(text, "₺")) && price == 0 && len(text) < 30 {
-						price = scraper.ParsePrice(text)
-					}
-				})
+		// Author is the first inline <span> sibling under the title block.
+		author := strings.TrimSpace(s.Find("h3").First().NextFiltered("span").Text())
+		// Publisher sits in a <p> right after the author span.
+		publisher := strings.TrimSpace(s.Find("h3").First().Parent().Find("p").First().Text())
 
-				// Look for author/publisher in child elements
-				author = strings.TrimSpace(s.Find(".author, .writer, .book-author").First().Text())
-				publisher = strings.TrimSpace(s.Find(".publisher, .book-publisher, .yayinevi").First().Text())
-			} else {
-				// Generic card extraction
-				title = strings.TrimSpace(s.Find("h2, h3, .title, .product-title, .book-title").First().Text())
-				author = strings.TrimSpace(s.Find(".author, .writer").First().Text())
-				publisher = strings.TrimSpace(s.Find(".publisher, .yayinevi").First().Text())
-
-				s.Find("span, p, div").Each(func(_ int, el *goquery.Selection) {
-					text := strings.TrimSpace(el.Text())
-					if (strings.Contains(text, "TL") || strings.Contains(text, "₺")) && price == 0 && len(text) < 30 {
-						price = scraper.ParsePrice(text)
-					}
-				})
-
-				if href, exists := s.Find("a[href]").First().Attr("href"); exists {
-					href = strings.TrimSpace(href)
-					if href != "" {
-						if !strings.HasPrefix(href, "http") {
-							productURL = "https://www.pandora.com.tr" + href
-						} else {
-							productURL = href
-						}
-					}
+		// Price lives in a <span> inside a price <div>. Pick the first span
+		// whose text contains "TL" or the ₺ symbol.
+		var price float64
+		s.Find("span").EachWithBreak(func(_ int, sp *goquery.Selection) bool {
+			text := strings.TrimSpace(sp.Text())
+			if (strings.Contains(text, "TL") || strings.Contains(text, "₺")) && len(text) < 40 {
+				if v := scraper.ParsePrice(text); v > 0 {
+					price = v
+					return false
 				}
 			}
-
-			if title == "" || price <= 0 {
-				return
-			}
-
-			results = append(results, scraper.BookResult{
-				Title:      title,
-				Author:     author,
-				Publisher:  publisher,
-				Price:      price,
-				CargoFee:   cargoFee,
-				TotalPrice: price + cargoFee,
-				Condition:  scraper.NewBook.String(),
-				Site:       "pandora.com.tr",
-				URL:        productURL,
-				Category:   scraper.NewBook,
-			})
-
-			results = append(results, scraper.BookResult{
-				Title:       title,
-				Author:      author,
-				Publisher:   publisher,
-				Price:       price,
-				CargoFee:    0,
-				TotalPrice:  price,
-				FreeCargo:   true,
-				LoyaltyNote: "150 TL üzeri siparişlerde ücretsiz kargo",
-				Condition:   scraper.NewBook.String(),
-				Site:        "pandora.com.tr",
-				URL:         productURL,
-				Category:    scraper.NewBook,
-			})
-			productCount++
+			return true
 		})
 
-		if productCount > 0 {
-			break
+		if price <= 0 {
+			return true
 		}
-	}
+
+		results = append(results, scraper.BookResult{
+			Title:      title,
+			Author:     author,
+			Publisher:  publisher,
+			Price:      price,
+			CargoFee:   cargoFee,
+			TotalPrice: price + cargoFee,
+			Condition:  scraper.NewBook.String(),
+			Site:       "pandora.com.tr",
+			URL:        productURL,
+			Category:   scraper.NewBook,
+		})
+
+		results = append(results, scraper.BookResult{
+			Title:       title,
+			Author:      author,
+			Publisher:   publisher,
+			Price:       price,
+			CargoFee:    0,
+			TotalPrice:  price,
+			FreeCargo:   true,
+			LoyaltyNote: "150 TL üzeri siparişlerde ücretsiz kargo",
+			Condition:   scraper.NewBook.String(),
+			Site:        "pandora.com.tr",
+			URL:         productURL,
+			Category:    scraper.NewBook,
+		})
+		productCount++
+		return true
+	})
 
 	return results, nil
+}
+
+// isPandoraProductHref reports whether an href looks like a Pandora book
+// detail URL of the form /kitap/<slug>/<numeric-id>. Menu links such as
+// /kitap/arama-gecmisi/935336 pass this check too, which is fine — the
+// parent context (search results grid) ensures we only see relevant cards.
+func isPandoraProductHref(href string) bool {
+	idx := strings.Index(href, "/kitap/")
+	if idx < 0 {
+		return false
+	}
+	rest := href[idx+len("/kitap/"):]
+	// Must have at least "<slug>/<id>"
+	parts := strings.Split(rest, "/")
+	if len(parts) < 2 {
+		return false
+	}
+	slug := parts[0]
+	id := parts[1]
+	if slug == "" || id == "" {
+		return false
+	}
+	// Drop any query string on the id
+	if q := strings.IndexAny(id, "?#"); q >= 0 {
+		id = id[:q]
+	}
+	if id == "" {
+		return false
+	}
+	for _, r := range id {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
 }

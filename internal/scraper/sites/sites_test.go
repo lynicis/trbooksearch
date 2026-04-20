@@ -2022,12 +2022,19 @@ func TestDR_Search_EmptyHTML(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestPandora_Search_WithMockFirecrawl(t *testing.T) {
+	// Mirrors the real pandora.com.tr search card structure: an anchor to
+	// /kitap/<slug>/<numeric-id> wrapping an h3 (title), span (author),
+	// p (publisher) and a span containing the price.
 	html := `<html><body>
-		<a href="/kitap/test-pandora-kitap-123">
-			<h2>Pandora Test Kitap</h2>
-			<div class="author">Pandora Yazar</div>
-			<div class="publisher">Pandora Yayınevi</div>
-			<span>45,99 TL</span>
+		<a href="/kitap/test-pandora-kitap/123">
+			<div>
+				<div>
+					<h3>Pandora Test Kitap</h3>
+					<span>Pandora Yazar</span>
+					<p>Pandora Yayınevi</p>
+					<div><span>45,99 TL</span></div>
+				</div>
+			</div>
 		</a>
 	</body></html>`
 
@@ -2064,7 +2071,7 @@ func TestPandora_Search_WithMockFirecrawl(t *testing.T) {
 	if r.Site != "pandora.com.tr" {
 		t.Errorf("site = %q", r.Site)
 	}
-	if r.URL != "https://www.pandora.com.tr/kitap/test-pandora-kitap-123" {
+	if r.URL != "https://www.pandora.com.tr/kitap/test-pandora-kitap/123" {
 		t.Errorf("url = %q", r.URL)
 	}
 
@@ -2077,11 +2084,23 @@ func TestPandora_Search_WithMockFirecrawl(t *testing.T) {
 	}
 }
 
-func TestPandora_Search_TitleFromSlug(t *testing.T) {
-	// No h2/h3 in the card, title should come from URL slug
+func TestPandora_Search_SkipsNonProductKitapLinks(t *testing.T) {
+	// Pandora sometimes renders in-page menu or help links whose path also
+	// starts with /kitap/ but does not end with a numeric product id. The
+	// scraper must ignore these and only treat /kitap/<slug>/<numeric-id>
+	// as a real product card.
 	html := `<html><body>
-		<a href="/kitap/benim-kitabim-slug">
-			<span>22,00 TL</span>
+		<a href="/kitap/arama-yardim">
+			<h3>Yardım</h3>
+			<span>44,00 TL</span>
+		</a>
+		<a href="/kitap/gercek-kitap/555">
+			<div>
+				<h3>Gerçek Kitap</h3>
+				<span>Bir Yazar</span>
+				<p>Bir Yayınevi</p>
+				<div><span>100,00 TL</span></div>
+			</div>
 		</a>
 	</body></html>`
 
@@ -2096,11 +2115,10 @@ func TestPandora_Search_TitleFromSlug(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(results) != 2 {
-		t.Fatalf("expected 2 results, got %d", len(results))
+		t.Fatalf("expected 2 results (one product, with/without free cargo), got %d", len(results))
 	}
-	// Title extracted from slug "benim-kitabim-slug" -> "benim kitabim slug"
-	if results[0].Title != "benim kitabim slug" {
-		t.Errorf("title from slug = %q", results[0].Title)
+	if results[0].Title != "Gerçek Kitap" {
+		t.Errorf("title = %q, want %q", results[0].Title, "Gerçek Kitap")
 	}
 }
 
