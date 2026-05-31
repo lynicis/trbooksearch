@@ -34,7 +34,12 @@ func (ix *Idefix) Search(ctx context.Context, query string, searchType scraper.S
 	var pageHTML string
 	var err error
 	if ix.firecrawl != nil {
-		pageHTML, err = ix.firecrawl.FetchHTML(ctx, searchURL, 5000)
+		pageHTML, err = ix.firecrawl.FetchHTMLWithOptions(ctx, searchURL, scraper.FetchOptions{
+			WaitFor: 5000,
+			Timeout: 120000,
+			Proxy:   "auto",
+			Retries: 1,
+		})
 	} else {
 		pageHTML, err = scraper.FetchPageWithWait(ctx, searchURL, "div.justify-self-start")
 	}

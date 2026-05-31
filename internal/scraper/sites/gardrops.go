@@ -41,8 +41,8 @@ func (g *Gardrops) Search(ctx context.Context, query string, searchType scraper.
 
 	pageHTML, err := g.firecrawl.FetchHTMLWithOptions(ctx, searchURL, scraper.FetchOptions{
 		WaitFor: 5000,
-		Timeout: 90000,
-		Proxy:   "enhanced",
+		Timeout: 120000,
+		Proxy:   "auto",
 		Retries: 1,
 	})
 	if err != nil {

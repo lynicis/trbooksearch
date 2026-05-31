@@ -36,7 +36,12 @@ func (d *DR) Search(ctx context.Context, query string, searchType scraper.Search
 		url.QueryEscape(query),
 	)
 
-	pageHTML, err := d.firecrawl.FetchHTML(ctx, searchURL, 8000)
+	pageHTML, err := d.firecrawl.FetchHTMLWithOptions(ctx, searchURL, scraper.FetchOptions{
+		WaitFor: 8000,
+		Timeout: 120000,
+		Proxy:   "auto",
+		Retries: 1,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("dr: %w", err)
 	}

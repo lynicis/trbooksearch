@@ -38,8 +38,8 @@ func (l *Letgo) Search(ctx context.Context, query string, searchType scraper.Sea
 
 	pageHTML, err := l.firecrawl.FetchHTMLWithOptions(ctx, searchURL, scraper.FetchOptions{
 		WaitFor: 8000,
-		Timeout: 120000,
-		Proxy:   "enhanced",
+		Timeout: 150000,
+		Proxy:   "auto",
 		Retries: 1,
 	})
 	if err != nil {

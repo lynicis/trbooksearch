@@ -113,9 +113,10 @@ func runSearch(cmd *cobra.Command, args []string) error {
 
 	// Create TUI model and run
 	// Give enough headroom for the Firecrawl worst case: a heavy SPA site
-	// with Timeout=120s + one retry (2s backoff) can legitimately take up
-	// to ~140s. 150s total lets the engine finish instead of cutting sites.
-	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Second)
+	// with Timeout=150s + one retry (2s backoff) can legitimately take up
+	// to ~302s. 210s provides a practical window; if a site exceeds this
+	// its retry will be cut short, but the first attempt still has 150s.
+	ctx, cancel := context.WithTimeout(context.Background(), 210*time.Second)
 	defer cancel()
 
 	opts := engine.SearchOptions{

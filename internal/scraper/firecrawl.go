@@ -43,7 +43,12 @@ type FetchOptions struct {
 	Timeout int
 	// Proxy selects the Firecrawl proxy tier: "basic", "auto", "enhanced".
 	// Empty string lets Firecrawl pick the default.
+	// "auto" is recommended: tries basic first (fast), falls back to
+	// enhanced only if basic fails.
 	Proxy string
+	// Mobile enables mobile rendering mode. Some sites render faster or
+	// serve simpler layouts on mobile.
+	Mobile bool
 	// Retries is the number of additional attempts on transient failures
 	// (HTTP 408, 429, 5xx, or API SCRAPE_TIMEOUT). 0 disables retries.
 	Retries int
@@ -55,6 +60,7 @@ type firecrawlRequest struct {
 	WaitFor int      `json:"waitFor,omitempty"`
 	Timeout int      `json:"timeout,omitempty"`
 	Proxy   string   `json:"proxy,omitempty"`
+	Mobile  bool     `json:"mobile,omitempty"`
 }
 
 type firecrawlResponse struct {
@@ -90,6 +96,7 @@ func (fc *FirecrawlClient) FetchHTMLWithOptions(ctx context.Context, url string,
 		WaitFor: opts.WaitFor,
 		Timeout: opts.Timeout,
 		Proxy:   opts.Proxy,
+		Mobile:  opts.Mobile,
 	}
 
 	jsonBody, err := json.Marshal(reqBody)
@@ -105,12 +112,14 @@ func (fc *FirecrawlClient) FetchHTMLWithOptions(ctx context.Context, url string,
 	var lastErr error
 	for attempt := 0; attempt < attempts; attempt++ {
 		if attempt > 0 {
-			// Fixed 2s backoff between attempts. Keeps total worst-case time
-			// bounded so the outer search context can still complete.
+			// Exponential backoff: 2s, 4s, 8s... Gives transient failures
+			// (rate limits, proxy congestion) time to resolve while keeping
+			// total time bounded.
+			backoff := time.Duration(1<<(attempt-1)) * 2 * time.Second
 			select {
 			case <-ctx.Done():
 				return "", ctx.Err()
-			case <-time.After(2 * time.Second):
+			case <-time.After(backoff):
 			}
 		}
 
