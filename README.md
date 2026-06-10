@@ -178,6 +178,63 @@ trbooksearch search --firecrawl "Otostopcularin Galaksi Rehberi"
 
 ---
 
+## Guide
+
+### First Run
+
+```bash
+# Search for a book by title
+trbooksearch search "Suç ve Ceza"
+```
+
+If you have Chrome/Chromium installed, the search starts immediately — results appear in real time as each store responds.
+
+### Understanding Results
+
+Results are grouped into two sections:
+
+| Section | Meaning |
+|---------|---------|
+| **Ikinci El** | Used / second-hand books |
+| **Yeni** | New books from retailers |
+
+Within each section, entries are sorted by **total price** (book price + cargo fee) ascending. Each row shows the seller, book title, price, and condition.
+
+### Keyboard Navigation
+
+| Key | Action |
+|-----|--------|
+| `↑` `↓` | Scroll |
+| `/` | Filter results by text |
+| `1`–`7` | Jump to a column |
+| `s` | Change sort column |
+| `S` | Reverse sort direction |
+| `Enter` | Open the book page in your browser |
+| `q` | Quit |
+
+### Firecrawl (Cloud Scraping)
+
+Some sites require a Firecrawl API key. Set it up once:
+
+```bash
+trbooksearch set-api-key fc-your-api-key-here
+```
+
+Then search with the `--firecrawl` flag:
+
+```bash
+trbooksearch search --firecrawl "Otostopçunun Galaksi Rehberi"
+```
+
+### Tips
+
+- **By ISBN** for exact matches: `trbooksearch search --isbn 9789750726439`
+- **Narrow by store**: `trbooksearch search --sites "kitapyurdu.com,nadirkitap.com" "Dune"`
+- **Quick comparision**: Use `--limit 3` to see only the cheapest options per site
+- **Flat view**: `--flat` disables the Used/New grouping
+
+---
+
 ## Supported Sites
 
 ### New Books (Yeni Kitaplar)
