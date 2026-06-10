@@ -1,0 +1,102 @@
+name: Update Homebrew Tap
+
+on:
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  update-tap:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source repo
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          repository: lynicis/trbooksearch
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Get release metadata
+        id: meta
+        run: |
+          TAG=$(git describe --tags --exact-match ${{ github.event.workflow_run.head_sha }})
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout homebrew-tap repo
+        uses: actions/checkout@v6
+        with:
+          repository: lynicis/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+          path: homebrew-tap
+
+      - name: Update formula
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          MAC_ARM64_URL="https://github.com/lynicis/trbooksearch/releases/download/${TAG}/trbooksearch_${VERSION}_darwin_arm64.tar.gz"
+          MAC_AMD64_URL="https://github.com/lynicis/trbooksearch/releases/download/${TAG}/trbooksearch_${VERSION}_darwin_amd64.tar.gz"
+          LINUX_ARM64_URL="https://github.com/lynicis/trbooksearch/releases/download/${TAG}/trbooksearch_${VERSION}_linux_arm64.tar.gz"
+          LINUX_AMD64_URL="https://github.com/lynicis/trbooksearch/releases/download/${TAG}/trbooksearch_${VERSION}_linux_amd64.tar.gz"
+
+          MAC_ARM64_SHA=$(curl -sL "$MAC_ARM64_URL" | sha256sum | cut -d' ' -f1)
+          MAC_AMD64_SHA=$(curl -sL "$MAC_AMD64_URL" | sha256sum | cut -d' ' -f1)
+          LINUX_ARM64_SHA=$(curl -sL "$LINUX_ARM64_URL" | sha256sum | cut -d' ' -f1)
+          LINUX_AMD64_SHA=$(curl -sL "$LINUX_AMD64_URL" | sha256sum | cut -d' ' -f1)
+
+          cat > homebrew-tap/Formula/trbooksearch.rb << FORMULA
+          class Trbooksearch < Formula
+            desc "Find the best book prices across Turkish online stores -- all from your terminal"
+            homepage "https://github.com/lynicis/trbooksearch"
+            version "${VERSION}"
+            license "MIT"
+
+            on_macos do
+              on_arm do
+                url "${MAC_ARM64_URL}"
+                sha256 "${MAC_ARM64_SHA}"
+              end
+              on_intel do
+                url "${MAC_AMD64_URL}"
+                sha256 "${MAC_AMD64_SHA}"
+              end
+            end
+
+            on_linux do
+              on_arm do
+                url "${LINUX_ARM64_URL}"
+                sha256 "${LINUX_ARM64_SHA}"
+              end
+              on_intel do
+                url "${LINUX_AMD64_URL}"
+                sha256 "${LINUX_AMD64_SHA}"
+              end
+            end
+
+            def install
+              bin.install "trbooksearch"
+            end
+
+            test do
+              assert_match "trbooksearch", shell_output("#{bin}/trbooksearch --help")
+            end
+          end
+          FORMULA
+
+      - name: Commit and push to tap
+        working-directory: homebrew-tap
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/trbooksearch.rb
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "trbooksearch ${{ steps.meta.outputs.tag }}"
+          git push

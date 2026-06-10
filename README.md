@@ -85,17 +85,46 @@ sudo mv trbooksearch /usr/local/bin/
 go install github.com/lynicis/trbooksearch@latest
 ```
 
+### Via Homebrew (macOS / Linux)
+
+```bash
+brew install lynicis/tap/trbooksearch
+```
+
+### Via Scoop (Windows)
+
+```bash
+scoop bucket add lynicis https://github.com/lynicis/scoop-bucket
+scoop install trbooksearch
+```
+
+### Via APT (Debian / Ubuntu)
+
+Download the `.deb` package from the [Releases](https://github.com/lynicis/trbooksearch/releases) page:
+
+```bash
+sudo dpkg -i trbooksearch_*.deb
+```
+
+### Via AUR (Arch Linux)
+
+```bash
+git clone https://aur.archlinux.org/trbooksearch-bin.git
+cd trbooksearch-bin
+makepkg -si
+```
+
 ### Pre-built Binaries
 
 Download the latest release for your platform from the [Releases](https://github.com/lynicis/trbooksearch/releases) page.
 
-| Platform | Architecture | Download |
-|----------|--------------|----------|
-| Linux    | amd64        | [trbooksearch-linux-amd64.tar.gz](https://github.com/lynicis/trbooksearch/releases/latest) |
-| Linux    | arm64        | [trbooksearch-linux-arm64.tar.gz](https://github.com/lynicis/trbooksearch/releases/latest) |
-| macOS    | amd64        | [trbooksearch-darwin-amd64.tar.gz](https://github.com/lynicis/trbooksearch/releases/latest) |
-| macOS    | arm64 (M1+)  | [trbooksearch-darwin-arm64.tar.gz](https://github.com/lynicis/trbooksearch/releases/latest) |
-| Windows  | amd64        | [trbooksearch-windows-amd64.zip](https://github.com/lynicis/trbooksearch/releases/latest) |
+| Platform | Architecture | Format |
+|----------|--------------|--------|
+| Linux    | amd64        | `.tar.gz`, `.deb`, `.rpm` |
+| Linux    | arm64        | `.tar.gz`, `.deb`, `.rpm` |
+| macOS    | amd64        | `.tar.gz` |
+| macOS    | arm64 (M1+)  | `.tar.gz` |
+| Windows  | amd64        | `.zip` |
 
 ### Prerequisites
 

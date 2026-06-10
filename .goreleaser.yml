@@ -34,6 +34,45 @@ archives:
 checksum:
   name_template: "checksums.txt"
 
+nfpms:
+  - id: packages
+    package_name: trbooksearch
+    file_name_template: "{{ .ConventionalFileName }}"
+    homepage: https://github.com/lynicis/trbooksearch
+    maintainer: Emre Sirmali <lynicis@users.noreply.github.com>
+    description: |-
+      Find the best book prices across Turkish online stores
+      — all from your terminal.
+    license: MIT
+    formats:
+      - deb
+      - rpm
+      - archlinux
+    bindir: /usr/bin
+
+scoops:
+  - name: trbooksearch
+    homepage: https://github.com/lynicis/trbooksearch
+    description: "Find the best book prices across Turkish online stores — all from your terminal."
+    license: MIT
+    repository:
+      owner: lynicis
+      name: scoop-bucket
+    commit_msg_template: "Scoop update for {{ .ProjectName }} version {{ .Tag }}"
+
+aurs:
+  - name: trbooksearch-bin
+    homepage: https://github.com/lynicis/trbooksearch
+    description: "Find the best book prices across Turkish online stores — all from your terminal."
+    maintainers:
+      - "Emre Sirmali <lynicis@users.noreply.github.com>"
+    license: "MIT"
+    skip_upload: true
+    depends:
+      - chromium
+    package: |-
+      install -Dm755 "./trbooksearch" "${pkgdir}/usr/bin/trbooksearch"
+
 changelog:
   sort: asc
   filters:
